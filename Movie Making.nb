@@ -10,10 +10,10 @@
 NotebookFileLineBreakTest
 NotebookFileLineBreakTest
 NotebookDataPosition[       158,          7]
-NotebookDataLength[     23332,        554]
-NotebookOptionsPosition[     22080,        505]
-NotebookOutlinePosition[     22423,        520]
-CellTagsIndexPosition[     22380,        517]
+NotebookDataLength[     24061,        580]
+NotebookOptionsPosition[     22738,        529]
+NotebookOutlinePosition[     23110,        545]
+CellTagsIndexPosition[     23067,        542]
 WindowFrame->Normal*)
 
 (* Beginning of Notebook Content *)
@@ -39,16 +39,14 @@ Cell[CellGroupData[{
 Cell["Parameters", "Chapter",
  CellChangeTimes->{{3.672279719167757*^9, 3.6722797258720245`*^9}}],
 
-Cell[CellGroupData[{
-
 Cell[BoxData[{
  RowBox[{
-  RowBox[{"date", "=", "\"\<160515\>\""}], ";"}], "\[IndentingNewLine]", 
+  RowBox[{"date", "=", "\"\<160518\>\""}], ";"}], "\[IndentingNewLine]", 
  RowBox[{
-  RowBox[{"fitsName", " ", "=", " ", "\"\<MovingNoBinning\>\""}], 
+  RowBox[{"fitsName", " ", "=", " ", "\"\<NoBinningX\>\""}], 
   ";"}], "\[IndentingNewLine]", 
  RowBox[{
-  RowBox[{"movieName", " ", "=", " ", "\"\<MovingNoBinning\>\""}], 
+  RowBox[{"movieName", " ", "=", " ", "\"\<XNoBinning\>\""}], 
   ";"}], "\[IndentingNewLine]", 
  RowBox[{
   RowBox[{"pixelCountMin", " ", "=", " ", "130"}], 
@@ -57,13 +55,12 @@ Cell[BoxData[{
   RowBox[{"pixelCountRange", " ", "=", " ", "60"}], 
   ";"}], "\[IndentingNewLine]", 
  RowBox[{
-  RowBox[{"pictureNumber", " ", "=", " ", "2000"}], 
+  RowBox[{"pictureNumber", " ", "=", " ", "1800"}], 
   ";"}], "\[IndentingNewLine]", 
  RowBox[{
   RowBox[{"atomLocation", " ", "=", " ", 
    RowBox[{"{", 
-    RowBox[{"2", ",", "2"}], "}"}]}], ";"}], "\[IndentingNewLine]", 
- RowBox[{"Print", "[", "\"\<Done\>\"", "]"}]}], "Input",
+    RowBox[{"2", ",", "2"}], "}"}]}], ";"}]}], "Input",
  CellChangeTimes->{{3.672279736262426*^9, 3.6722797836790943`*^9}, {
    3.672279879645158*^9, 3.672279940824911*^9}, {3.6722800424310637`*^9, 
    3.672280063315346*^9}, {3.6722802055735445`*^9, 3.6722802268938913`*^9}, {
@@ -81,20 +78,8 @@ Cell[BoxData[{
    3.672414222607189*^9}, 3.6724142679089174`*^9, {3.6724144642045817`*^9, 
    3.6724144742747755`*^9}, {3.672414659140582*^9, 3.6724146658733697`*^9}, {
    3.6724147966250505`*^9, 3.672414803734107*^9}, {3.672415619329175*^9, 
-   3.6724156315865297`*^9}}],
-
-Cell[BoxData["\<\"Done\"\>"], "Print",
- CellChangeTimes->{{3.672280993122183*^9, 3.672281010626455*^9}, 
-   3.6722812657625866`*^9, {3.6722821027140417`*^9, 3.6722821132644143`*^9}, 
-   3.672282199340702*^9, 3.6723446360403824`*^9, 3.672344765052966*^9, 
-   3.672344893444674*^9, 3.672345551552985*^9, 3.6723457307358937`*^9, {
-   3.6723457794541893`*^9, 3.672345813481866*^9}, {3.6723463126831236`*^9, 
-   3.672346316599064*^9}, 3.6724033490494137`*^9, 3.6724038027321444`*^9, 
-   3.6724038451863065`*^9, 3.672404903486251*^9, 3.67240510787551*^9, 
-   3.672405453150936*^9, 3.672414228869177*^9, {3.672414269509074*^9, 
-   3.672414283092758*^9}, 3.67241431717305*^9, 3.672414489651415*^9, 
-   3.6724146732085967`*^9, 3.672414810691053*^9, 3.6724156496003203`*^9}]
-}, Open  ]]
+   3.6724156315865297`*^9}, {3.6726323831589637`*^9, 3.672632405257589*^9}, {
+   3.6726324396544943`*^9, 3.6726324655041995`*^9}}]
 }, Open  ]],
 
 Cell[CellGroupData[{
@@ -184,6 +169,45 @@ Cell[BoxData[{
   3.6722796385262585`*^9, 3.6722796398361835`*^9}, {3.6722798407348204`*^9, 
   3.6722798704876943`*^9}, {3.6722799212964516`*^9, 3.6722799456418724`*^9}, {
   3.6722802631227727`*^9, 3.672280284068709*^9}}]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Average Data", "Chapter",
+ CellChangeTimes->{{3.672632365179904*^9, 3.672632367861179*^9}}],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"averagedData", " ", "=", " ", 
+   RowBox[{"{", "}"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{"Do", "[", "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{"Do", "[", "\[IndentingNewLine]", 
+    RowBox[{
+     RowBox[{"Do", "[", "\[IndentingNewLine]", 
+      RowBox[{
+       RowBox[{"Do", "[", 
+        RowBox[{
+         RowBox[{
+          RowBox[{"averagedData", "[", 
+           RowBox[{"[", 
+            RowBox[{"pictureInc", ",", " ", "collumnInc", ",", "RowInc"}], 
+            "]"}], "]"}], " ", "=", " ", 
+          RowBox[{"scaledData", "[", 
+           RowBox[{"[", 
+            RowBox[{
+             RowBox[{"[", 
+              RowBox[{
+               RowBox[{"pictureInc", " ", "+", " ", 
+                RowBox[{"experimentInc", " ", "*", " ", "18"}]}], ",", 
+               "collumnInc", ",", "RowInc"}], "]"}], ",", 
+             RowBox[{"{", "}"}]}], "]"}], "]"}]}], ",", "\[IndentingNewLine]", 
+         RowBox[{"{", "}"}]}], "]"}], ",", "\[IndentingNewLine]", 
+       RowBox[{"{", "}"}]}], "]"}], ",", "\[IndentingNewLine]", 
+     RowBox[{"{", "}"}]}], "]"}], ",", "\[IndentingNewLine]", 
+   RowBox[{"{", "}"}]}], "]"}]}], "Input",
+ CellChangeTimes->{{3.67263236946021*^9, 3.6726323702590256`*^9}, {
+  3.6726324940926504`*^9, 3.6726327517674236`*^9}}]
 }, Open  ]],
 
 Cell[CellGroupData[{
@@ -503,8 +527,9 @@ Cell[BoxData[
 }, Open  ]]
 }, Open  ]]
 },
-WindowSize->{1920, 997},
-WindowMargins->{{-8, Automatic}, {Automatic, -8}},
+WindowSize->{1842, 988},
+WindowMargins->{{-7, Automatic}, {Automatic, 0}},
+Magnification:>1.3 Inherited,
 FrontEndVersion->"10.2 for Microsoft Windows (64-bit) (July 29, 2015)",
 StyleDefinitions->"Default.nb"
 ]
@@ -520,40 +545,41 @@ CellTagsIndex->{}
 (*NotebookFileOutline
 Notebook[{
 Cell[CellGroupData[{
-Cell[580, 22, 91, 1, 101, "Title"],
-Cell[674, 25, 417, 9, 43, "Text"],
+Cell[580, 22, 91, 1, 131, "Title"],
+Cell[674, 25, 417, 9, 53, "Text"],
 Cell[CellGroupData[{
-Cell[1116, 38, 97, 1, 72, "Chapter"],
+Cell[1116, 38, 97, 1, 93, "Chapter"],
+Cell[1216, 41, 2090, 40, 190, "Input"]
+}, Open  ]],
 Cell[CellGroupData[{
-Cell[1238, 43, 2068, 40, 172, "Input"],
-Cell[3309, 85, 764, 10, 23, "Print"]
+Cell[3343, 86, 198, 3, 93, "Chapter"],
+Cell[3544, 91, 1169, 30, 115, "Input"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[4750, 126, 97, 1, 93, "Chapter"],
+Cell[4850, 129, 1774, 41, 134, "Input"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[6661, 175, 97, 1, 93, "Chapter"],
+Cell[6761, 178, 1300, 31, 240, "Input"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[8098, 214, 162, 2, 93, "Chapter"],
+Cell[8263, 218, 4314, 90, 283, "Input"],
+Cell[CellGroupData[{
+Cell[12602, 312, 214, 4, 39, "Input"],
+Cell[12819, 318, 4299, 78, 221, "Output"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[17155, 401, 1063, 24, 140, "Input"],
+Cell[18221, 427, 268, 4, 28, "Print"]
 }, Open  ]]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[4122, 101, 198, 3, 72, "Chapter"],
-Cell[4323, 106, 1169, 30, 92, "Input"]
-}, Open  ]],
-Cell[CellGroupData[{
-Cell[5529, 141, 97, 1, 72, "Chapter"],
-Cell[5629, 144, 1774, 41, 97, "Input"]
-}, Open  ]],
-Cell[CellGroupData[{
-Cell[7440, 190, 162, 2, 72, "Chapter"],
-Cell[7605, 194, 4314, 90, 151, "Input"],
-Cell[CellGroupData[{
-Cell[11944, 288, 214, 4, 31, "Input"],
-Cell[12161, 294, 4299, 78, 170, "Output"]
-}, Open  ]],
-Cell[CellGroupData[{
-Cell[16497, 377, 1063, 24, 112, "Input"],
-Cell[17563, 403, 268, 4, 23, "Print"]
-}, Open  ]]
-}, Open  ]],
-Cell[CellGroupData[{
-Cell[17880, 413, 114, 1, 72, "Chapter"],
-Cell[17997, 416, 1376, 31, 52, "Input"],
-Cell[19376, 449, 997, 18, 31, "Input"],
-Cell[20376, 469, 1676, 32, 52, "Input"]
+Cell[18538, 437, 114, 1, 93, "Chapter"],
+Cell[18655, 440, 1376, 31, 65, "Input"],
+Cell[20034, 473, 997, 18, 40, "Input"],
+Cell[21034, 493, 1676, 32, 67, "Input"]
 }, Open  ]]
 }, Open  ]]
 }
