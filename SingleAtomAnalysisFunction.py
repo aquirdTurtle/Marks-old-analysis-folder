@@ -79,7 +79,7 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
         for experimentInc in range(0, firstExperimentData.size):
             if firstExperimentData[experimentInc] > threshold:
                 atomCount += 1;
-        print("Loading Efficiency: " + str(atomCount / firstExperimentData.size * 100) + "%")
+        print("Average Loading Efficiency: " + str(atomCount / firstExperimentData.size * 100) + "%")
         
         # ### Coalate Data        
         # Get Data in final form for exporting
@@ -105,8 +105,8 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
         plot12.set_ylabel("Occurance Count");
         plot12.set_xlabel("Pixel Counts");
         # make a histogram
-        plot13.hist(peakData, 50);
-        plot13.set_title("Histogram for All Pictures");
+        plot13.plot(fullCaptureData[:,0], fullCaptureData[:,1], linestyle = "none");
+        plot13.set_title("Average Loading Efficiency: " + str(atomCount / firstExperimentData.size * 100) + "%");
         plot13.set_ylabel("Occurance Count");
         plot13.set_xlabel("Pixel Counts");
         # plot the fit on top of the histogram
@@ -205,3 +205,5 @@ def hiFunc():
 #picturesPerExperiment = 2;
 #                 
 #singlePointAnalysis(date, runNumber, 1, 3, picturesPerExperiment, accumulations, "stuff")
+
+

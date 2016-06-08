@@ -49,14 +49,12 @@ count. It takes whichever distance is smaller, and uses that information to infe
 the guess should be for. It takes this smaller distance and takes double that distance away from the closest edge to
 define the region for this gaussian. It then finds the maximum in the remaining region, and uses this as the second 
 guess.
-
-This probably doesn't work for data sets with very long trails. Should be easy to modify for that case though.
-get range
 """
 def guessGaussianPeaks(rawData, binCenters, binnedData):
     from numpy import absolute, argmax, min, max
     leftBorder = min(rawData);
     rightBorder = max(rawData);
+    dataRange = rightBorder - leftBorder;
     # get index corresponding to global max
     guess1Index = argmax(binnedData);
     # get location of global max
@@ -69,8 +67,14 @@ def guessGaussianPeaks(rawData, binCenters, binnedData):
         # find index of dividing point:
         found = False;
         locInc = 0;
+        boundary = 0;
+        # set the boundary that the code will use to search for the second peak.
+        if (2 * distToLeft < dataRange / 3) :
+            boundary = leftBorder + dataRange / 3;
+        else:
+            boundary = leftBorder + 2 * distToLeft;      
         while (found == False):
-            if (binCenters[locInc] < (leftBorder + 2 * distToLeft)):
+            if (binCenters[locInc] < boundary):
                 locInc += 1;
             else:
                 found = True;
@@ -80,6 +84,13 @@ def guessGaussianPeaks(rawData, binCenters, binnedData):
     elif (distToLeft >= distToRight ):
         found = False;
         locInc = 0;
+        boundary = 0;
+        # set the boundary that the code will use to search for the second peak.
+        if (2 * distToRight < dataRange / 3) :
+            boundary = rightBorder - dataRange / 3;
+        else:
+            boundary = rightBorder - 2 * distToRight;      
+ 
         while (found == False):
             if (binCenters[locInc] < (rightBorder - 2 * distToRight)):
                 locInc += 1;
@@ -164,7 +175,7 @@ def getAnalyzedSurvivalData(data, threshold, key, accumulations, numberOfExperim
             ctsList = append(ctsList, average(cts.size));
             lctsList = append(lctsList, sqrt(cts.size));
             stdevC = append(stdevC, std(cts));
-    dataSpectra = column_stack((key, averageFractionTransfered))
+    dataSpectra = column_stack((key, averageFractionTransfered));
     survivalData = column_stack((dataSpectra, standardDeviation));
     fullCaptureProbabilityData = column_stack((array(key), captureProbabilities));
     return survivalData, fullCaptureProbabilityData, captureProbabilities 
