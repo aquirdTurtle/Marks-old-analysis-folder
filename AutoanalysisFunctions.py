@@ -2,7 +2,9 @@
 # This File contains all of the main functions used by my c++ code that controls the experiment.
 
 def pairAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, accumulations, fileName):
-    from numpy import array
+    from numpy import array, zeros
+    import ctypes  # An included library with Python install.
+    
     import sys
     sys.path.append("C:\\Users\\Mark\\Documents\\My Data Analysis")
     from astropy.io import fits
@@ -33,22 +35,22 @@ def pairAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, accu
     for atomInc in range(0, int(numberAtomsToAnalyze/4)):
         location1 = array([analysisLocations[4 * atomInc], analysisLocations[4 * atomInc + 1]]);        
         location2 = array([analysisLocations[4 * atomInc + 2], analysisLocations[4 * atomInc + 3]]);        
-        allAtomData = [0,0];
-        firstExperimentData = [0,0];
+        allAtomData = [[],[]];
+        firstExperimentData = [[],[]];
         allAtomData[0], firstExperimentData[0] = normalizeData(picturesPerExperiment, rawData, location1);
         allAtomData[1], firstExperimentData[1] = normalizeData(picturesPerExperiment, rawData, location2);
-        binCenters = [0,0];
-        binnedData = [0,0];
+        binCenters = [[],[]];
+        binnedData = [[],[]];
         binCenters[0], binnedData[0] = binData(5, allAtomData[0]);
         binCenters[1], binnedData[1] = binData(5, allAtomData[1]);
-        guessLocation1 = [0,0]
-        guessLocation2 = [0,0]
+        guessLocation1 = [[],[]];
+        guessLocation2 = [[],[]];
         guessLocation1[0], guessLocation2[0] = guessGaussianPeaks(allAtomData[0], binCenters[0], binnedData[0]);
         guessLocation1[1], guessLocation2[1] = guessGaussianPeaks(allAtomData[0], binCenters[1], binnedData[1]);
-        guess = [0,0];
-        gaussianFitVals = [0,0];
-        thresholds = [0,0];
-        thresholdFidelity = [0,0];
+        guess = [[],[]];
+        gaussianFitVals = [[],[]];
+        thresholds = [[],[]];
+        thresholdFidelity = [[],[]];
         guess[0] = numpy.array([100, guessLocation1[0], 30, 200, guessLocation2[0], 10]);
         guess[1] = numpy.array([100, guessLocation1[1], 30, 200, guessLocation2[1], 10]);
         gaussianFitVals[0] = fitDoubleGaussian(binCenters[0], binnedData[0], guess[0]);
@@ -58,14 +60,13 @@ def pairAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, accu
         #
         atomCount1 = 0;
         atomCount2 = 0;
-        for experimentInc in range(0, firstExperimentData.size):
+        for experimentInc in range(0, firstExperimentData[0].size):
             if firstExperimentData[0][experimentInc] > thresholds[0]:
                 atomCount1 += 1;
-        for experimentInc in range(0, firstExperimentData.size):
+        for experimentInc in range(0, firstExperimentData[0].size):
             if firstExperimentData[1][experimentInc] > thresholds[1]:
                 atomCount2 += 1;
-
-        firstToFirst, firstToSecond, bothToBoth, bothToOne, loadingProbabilityArray, summedData \
+        firstToFirst, firstToSecond, bothToBoth, bothToOne, captureData1, captureData2, summedData \
             = getAnalyzedTunnelingData(allAtomData, thresholds, key, accumulations, numberOfExperiments);
         myFigure, ((plot11, plot12, plot13), (plot21, plot22, plot23)) = subplots(2, 3, figsize = (25,12))
         myFigure.suptitle("Data for locations {" + str(location1[0] + 1) + "," 
@@ -78,28 +79,35 @@ def pairAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, accu
         # make an image
         plot11.imshow(rawData[10], interpolation='none', cmap = get_cmap("bone"));
         plot11.set_title("Example Raw Image")
+        
         # First counts histogram
         plot12.hist(firstExperimentData[0], 50, color='r');
         plot12.hist(firstExperimentData[1], 50, color='b');
         plot12.set_title("First Picture of Experiment Pixel Count Histogram");
         plot12.set_ylabel("Occurance Count");
         plot12.set_xlabel("Pixel Counts");
+        
         # plot loading probabilities
-        plot13.plot(loadingProbabilityArray[0][:,0], loadingProbabilityArray[0][:,1], linestyle = "none", color='r');
-        plot13.plot(loadingProbabilityArray[1][:,0], loadingProbabilityArray[1][:,1], linestyle = "none", color='b');
-        plot13.set_title("Average Loading Efficiencies: " + str(atomCount1 / firstExperimentData.size * 100) 
-                         + "% and " + str(atomCount2 / firstExperimentData.size * 100) + "%");
+        plot13.plot(captureData1[:,0], captureData1[:,1], linestyle = "none", color='r');
+        plot13.plot(captureData2[:,0], captureData2[:,1], linestyle = "none", color='b');
+        plot13.set_title("Average Loading Efficiencies: " + str(atomCount1 / firstExperimentData[0].size * 100) 
+                         + "% and " + str(atomCount2 / firstExperimentData[1].size * 100) + "%");
         plot13.set_ylabel("Occurance Count");
         plot13.set_xlabel("Pixel Counts");
+        
         # plot the fit on top of the histogram
-        plot21.plot(binCenters, binnedData, "o", markersize = 3);
+        plot21.plot(binCenters[0], binnedData[0], "o", markersize = 3, color='r');
+        plot21.plot(binCenters[1], binnedData[1], "o", markersize = 3, color='b');
+        
         fineXData1 = numpy.linspace(min(allAtomData[0]), max(allAtomData[0]), 500);
         fineXData2 = numpy.linspace(min(allAtomData[1]), max(allAtomData[1]), 500);
 
         plot21.plot(fineXData1, doubleGaussian(fineXData1, *gaussianFitVals[0]), color='r');
         plot21.plot(fineXData2, doubleGaussian(fineXData2, *gaussianFitVals[1]), color='b');
-
-        plot21.set_title("Gaussian Fits over Histogram");
+        
+        plot21.set_title("Fits. Threshold (red) = " + str(thresholds[0]) + "Threshold (blue) = " + str(thresholds[1]));
+        plot21.axvline(x=thresholds[0], color='r', ls='dashed');
+        plot21.axvline(x=thresholds[1], color='b', ls='dashed');
         plot21.set_ylabel("Occurance Count");
         plot21.set_xlabel("Pixel Counts");
         plot22.plot(allAtomData[0], ".", markersize = 1, color='r');
@@ -107,13 +115,19 @@ def pairAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, accu
         plot22.set_title("Pixel Count Data Over Time");
         plot22.set_ylabel("Count on Pixel");
         plot22.set_xlabel("Picture Number");
-
+        ctypes.windll.user32.MessageBoxW(0, "Made it.", "", 1)
         # Plot survival data.
-        plot23.set_errorbar(firstToFirst[:,0], firstToFirst[:,1], yerr=firstToFirst[:,2], linestyle = "none", color = "r", fmt = "o", label = "first-to-first");
-        plot23.set_errorbar(firstToSecond[:,0], firstToSecond[:,1], yerr=firstToSecond[:,2], linestyle = "none", color = "b", fmt = "o", label = "first-to-second");
-        plot23.set_errorbar(bothToBoth[:,0], bothToBoth[:,1], yerr=bothToBoth[:,2], linestyle = "none", color = "c", fmt = "o", label = "both-to-both");
-        plot23.set_errorbar(bothToOne[:,0], bothToOne[:,1], yerr=bothToOne[:,2], linestyle = "none", color = "g", fmt = "o", label = "both-to-one");
-        plot23.set_errorbar(summedData[:,0],summedData[:,1], yerr = summedData[:,2], linestyle = "none", color = "m", fmt = "o", label = "first-survival");
+        #ctypes.windll.user32.MessageBoxW(0, "Made it.", "", 1)
+        plot23.errorbar(firstToFirst[:,0], firstToFirst[:,1], yerr=firstToFirst[:,2], linestyle = "none", color = "r", fmt = "o", label = "first-to-first");
+
+        plot23.errorbar(firstToSecond[:,0], firstToSecond[:,1], yerr=firstToSecond[:,2], linestyle = "none", color = "b", fmt = "o", label = "first-to-second");
+        
+        plot23.errorbar(bothToBoth[:,0], bothToBoth[:,1], yerr=bothToBoth[:,2], linestyle = "none", color = "c", fmt = "o", label = "both-to-both");
+        
+        plot23.errorbar(bothToOne[:,0], bothToOne[:,1], yerr=bothToOne[:,2], linestyle = "none", color = "g", fmt = "o", label = "both-to-one");
+        
+        plot23.errorbar(summedData[:,0],summedData[:,1], yerr = summedData[:,2], linestyle = "none", color = "m", fmt = "o", label = "first-survival");
+        
         plot23.set_title("Two-Particle Data")
         plot23.set_ylabel("% Occurred")
         plot23.set_xlabel("Variation Parameter Value")
@@ -128,7 +142,7 @@ def pairAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, accu
         outputName = (dataRepositoryPath + date + "\\" + fileName + "_run" + str(runNumber) + "_pair"
                       + "(" + str(location1[0] + 1) + "," + str(location1[1] + 1) + "), (" + str(location1[0] + 1) 
                           + "," + str(location1[1] + 1) + ")" + ".tsv");
-
+        ctypes.windll.user32.MessageBoxW(0, "Made it2.", "", 1)
         with open(outputName, "w") as record_file:
             # accumulations is special since it's an integer.
             record_file.write(str(accumulations) + "\n");
@@ -138,6 +152,7 @@ def pairAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, accu
                 record_file.write(str(allAtomData[0][peakInc]) + "\t");
             record_file.write("\n");
             # key
+            #ctypes.windll.user32.MessageBoxW(0, "Made it3.", "", 1)
             for keyInc in range(0, key.size-1):
                 record_file.write(str(key[keyInc]) + "\t");
             record_file.write(str(key[key.size-1]));
@@ -151,16 +166,18 @@ def pairAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, accu
                 record_file.write("ErrorBar[" + str(firstToFirst[firstToFirstPoints][2]) + "]");
                 record_file.write(str("}\t"));
             record_file.write(str("{{"));
-            record_file.write(str(firstToFirst[firstToFirstPoints-1][0]) + ", ");
-            record_file.write(str(firstToFirst[firstToFirstPoints-1][1]) + "}, ");
-            record_file.write("ErrorBar[" + str(firstToFirst[firstToFirstPoints-1][2]) + "]");
+            record_file.write(str(firstToFirst[firstToFirstDimensions[0]-1][0]) + ", ");
+            record_file.write(str(firstToFirst[firstToFirstDimensions[0]-1][1]) + "}, ");
+            record_file.write("ErrorBar[" + str(firstToFirst[firstToFirstDimensions[0]-1][2]) + "]");
             record_file.write(str("}"));
             record_file.write("\n")
             # capture probabilities data
-            print(loadingProbabilityArray.size)
-            for captureInc in range(0, loadingProbabilityArray.size):
-                record_file.write(str(loadingProbabilityArray[captureInc]) + " ");
+            #ctypes.windll.user32.MessageBoxW(0, "capture data size:" + str(captureData1.shape) + ",", "", 1)
+            for captureInc in range(0, captureData1.shape[0]):
+                #ctypes.windll.user32.MessageBoxW(0, str(captureInc), "", 1)
+                record_file.write(str(captureData1[captureInc, 1]) + " ");
             record_file.write("\n");
+            #ctypes.windll.user32.MessageBoxW(0, "Made it5.", "", 1)
             # raw data
             rawDataDimensions = rawData.shape;
             for pictureInc in range(0, rawDataDimensions[0]):
@@ -172,6 +189,7 @@ def pairAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, accu
                     record_file.write("} ")
                 record_file.write("}");
             record_file.write("\n");
+            #ctypes.windll.user32.MessageBoxW(0, "Made it.6", "", 1)
             # firstToSecond
             firstToSecondDimensions = firstToSecond.shape;
             for firstToSecondPoints in range(0, firstToSecondDimensions[0]-1):
@@ -181,11 +199,12 @@ def pairAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, accu
                 record_file.write("ErrorBar[" + str(firstToSecond[firstToSecondPoints][2]) + "]");
                 record_file.write(str("}\t"));
             record_file.write(str("{{"));
-            record_file.write(str(firstToSecond[firstToSecondPoints-1][0]) + ", ");
-            record_file.write(str(firstToSecond[firstToSecondPoints-1][1]) + "}, ");
-            record_file.write("ErrorBar[" + str(firstToSecond[firstToSecondPoints-1][2]) + "]");
+            record_file.write(str(firstToSecond[firstToSecondDimensions[0]-1][0]) + ", ");
+            record_file.write(str(firstToSecond[firstToSecondDimensions[0]-1][1]) + "}, ");
+            record_file.write("ErrorBar[" + str(firstToSecond[firstToSecondDimensions[0]-1][2]) + "]");
             record_file.write(str("}"));
             record_file.write("\n")
+            #ctypes.windll.user32.MessageBoxW(0, "Made it7.", "", 1)
             # bothToBoth
             bothToBothDimensions = bothToBoth.shape;
             for bothToBothPoints in range(0, bothToBothDimensions[0]-1):
@@ -195,11 +214,12 @@ def pairAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, accu
                 record_file.write("ErrorBar[" + str(bothToBoth[bothToBothPoints][2]) + "]");
                 record_file.write(str("}\t"));
             record_file.write(str("{{"));
-            record_file.write(str(bothToBoth[bothToBothPoints-1][0]) + ", ");
-            record_file.write(str(bothToBoth[bothToBothPoints-1][1]) + "}, ");
-            record_file.write("ErrorBar[" + str(bothToBoth[bothToBothPoints-1][2]) + "]");
+            record_file.write(str(bothToBoth[bothToBothDimensions[0]-1][0]) + ", ");
+            record_file.write(str(bothToBoth[bothToBothDimensions[0]-1][1]) + "}, ");
+            record_file.write("ErrorBar[" + str(bothToBoth[bothToBothDimensions[0]-1][2]) + "]");
             record_file.write(str("}"));
             record_file.write("\n")
+            #ctypes.windll.user32.MessageBoxW(0, "Made iti8.", "", 1)
             # bothToOne
             bothToOneDimensions = bothToOne.shape;
             for bothToOnePoints in range(0, bothToOneDimensions[0]-1):
@@ -209,16 +229,17 @@ def pairAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, accu
                 record_file.write("ErrorBar[" + str(bothToOne[bothToOnePoints][2]) + "]");
                 record_file.write(str("}\t"));
             record_file.write(str("{{"));
-            record_file.write(str(bothToOne[bothToOnePoints-1][0]) + ", ");
-            record_file.write(str(bothToOne[bothToOnePoints-1][1]) + "}, ");
-            record_file.write("ErrorBar[" + str(bothToOne[bothToOnePoints-1][2]) + "]");
+            record_file.write(str(bothToOne[bothToOneDimensions[0]-1][0]) + ", ");
+            record_file.write(str(bothToOne[bothToOneDimensions[0]-1][1]) + "}, ");
+            record_file.write("ErrorBar[" + str(bothToOne[bothToOneDimensions[0]-1][2]) + "]");
             record_file.write(str("}"));
             record_file.write("\n")
-            
+            #ctypes.windll.user32.MessageBoxW(0, "Made it.9", "", 1)
             # sensible version
             # for dataInc in range(1,len(collatedData)):
                 #record_file.write(str(collatedData[dataInc][0:len(collatedData[dataInc])]) + "\n");
     show();
+    return ("Threshold Found: " + str(thresholds) + "\r\nThreshold Fidelity: " + str(thresholdFidelity[0] * 100)  + ", " + str(thresholdFidelity[1] * 100)  + "%")
 
 # calling imports before calling this function
 def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, accumulations, fileName):
@@ -257,6 +278,7 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
     #
     #       Loop for each atom to analyze
     #
+    threshold = 0;
     numberAtomsToAnalyze = (array(analysisLocations).shape)[0];
     for atomInc in range(0, int(numberAtomsToAnalyze/2)):
         atomLocation = array([analysisLocations[2 * atomInc], analysisLocations[2 * atomInc + 1]]);
@@ -319,7 +341,8 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
         plot21.plot(binCenters, binnedData, "o", markersize = 3);
         fineXData = numpy.linspace(min(peakData),max(peakData),500);
         plot21.plot(fineXData, doubleGaussian(fineXData,*gaussianFitVals))
-        plot21.set_title("Gaussian Fits over Histogram");
+        plot21.axvline(x=threshold, color='r', ls='dashed');
+        plot21.set_title("Fits. Threshold = " + str(threshold));
         plot21.set_ylabel("Occurance Count");
         plot21.set_xlabel("Pixel Counts");
         plot22.plot(peakData, ".", markersize = 1);
@@ -336,7 +359,7 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
         # 
         fitsInfo.close()
         #collatedData = [accumulations, peakData, key, survivalData, captureProbabilities, rawData, captureProbabilities];
-        outputName = dataRepositoryPath + date + "\\" + fileName + "_run" + str(runNumber) + "_well" + str(atomLocation[0]) + str(atomLocation[1])+ ".tsv";
+        outputName = dataRepositoryPath + date + "\\" + fileName + "_run" + str(runNumber) + "_well" + str(atomLocation[0] + 1) + str(atomLocation[1] + 1)+ ".tsv";
         print("data outputted to file " + outputName)
         with open(outputName, "w") as record_file:
             # accumulations is special since it's an integer.

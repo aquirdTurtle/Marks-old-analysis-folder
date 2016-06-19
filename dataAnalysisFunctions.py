@@ -52,6 +52,7 @@ guess.
 """
 def guessGaussianPeaks(rawData, binCenters, binnedData):
     from numpy import absolute, argmax, min, max
+    import ctypes;
     leftBorder = min(rawData);
     rightBorder = max(rawData);
     dataRange = rightBorder - leftBorder;
@@ -76,6 +77,9 @@ def guessGaussianPeaks(rawData, binCenters, binnedData):
         while (found == False):
             if (binCenters[locInc] < boundary):
                 locInc += 1;
+                if locInc == binCenters.size:
+                    found = True;
+                    locInc -= 1;
             else:
                 found = True;
         subBinnedData = binnedData[locInc:binnedData.size];
@@ -94,11 +98,15 @@ def guessGaussianPeaks(rawData, binCenters, binnedData):
         while (found == False):
             if (binCenters[locInc] < (rightBorder - 2 * distToRight)):
                 locInc += 1;
+                if locInc == binCenters.size:
+                    found = True;
+                    locInc -= 1;
             else:
                 found = True;
         subBinnedData = binnedData[0:locInc];
         # get index corresponding to second local maxima
-        guess2Index = argmax(subBinnedData)
+        guess2Index = argmax(subBinnedData)    
+    #ctypes.windll.user32.MessageBoxW(0, "Made it.", "", 1)
     # get location of second local maxima
     guess2Location = binCenters[guess2Index];    
     return guess1Location, guess2Location;
@@ -254,7 +262,7 @@ def getAnalyzedTunnelingData(data, thresholds, key, accumulations, numberOfExper
     averageFirstToSecond = array([]);
     averageBothToBoth = array([]);
     averageBothToOne = array([]);
-    captProbs = array([]);
+    captProbs = [[],[]];
     stdev = array([]);
     stdev2 = array([]);
     stdevBoth  = array([]);
@@ -277,7 +285,8 @@ def getAnalyzedTunnelingData(data, thresholds, key, accumulations, numberOfExper
                 ctsBoth = append(ctsBoth, bothToBoth[picNum]);
             if (bothToOne[picNum] != -1):
                 ctsBoth11 = append(ctsBoth11, bothToOne[picNum]);
-        captProbs = append(captProbs, cts.size / accumulations);
+        captProbs[0] = append(captProbs[0], (cts.size + ctsBoth.size) / accumulations);
+        captProbs[1] = append(captProbs[1], (cts2.size + ctsBoth.size) / accumulations);
         averageFirstToFirst = append(averageFirstToFirst, average(cts));
         averageFirstToSecond = append(averageFirstToSecond, average(cts2));
         averageBothToBoth = append(averageBothToBoth, average(ctsBoth));
@@ -293,11 +302,13 @@ def getAnalyzedTunnelingData(data, thresholds, key, accumulations, numberOfExper
     dataSpectra = column_stack((key, averageFirstToFirst));
     dataSpectra2 = column_stack((key, averageFirstToSecond));
     dataSpectraBoth = column_stack((key, averageBothToBoth));
+    captureData1 = column_stack((key, captProbs[0]));
+    captureData2 = column_stack((key, captProbs[1]));
     dataSpectraBoth11 = column_stack((key, averageBothToOne));
     toPlot = column_stack((dataSpectra, stdev));
     toPlot2 = column_stack((dataSpectra2, stdev2));
     toPlotBoth = column_stack((dataSpectraBoth, stdevBoth));
     toPlotBoth11 = column_stack((dataSpectraBoth11, stdevBoth11));
     toPlotSum = column_stack((key, averageFirstToFirst + averageFirstToSecond, sqrt(stdev**2 + stdev2**2)));
-    return toPlot, toPlot2, toPlotBoth, toPlotBoth11, captProbs, toPlotSum;
+    return toPlot, toPlot2, toPlotBoth, toPlotBoth11, captureData1, captureData2, toPlotSum;
    
