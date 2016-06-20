@@ -115,7 +115,7 @@ def pairAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, accu
         plot22.set_title("Pixel Count Data Over Time");
         plot22.set_ylabel("Count on Pixel");
         plot22.set_xlabel("Picture Number");
-        ctypes.windll.user32.MessageBoxW(0, "Made it.", "", 1)
+
         # Plot survival data.
         #ctypes.windll.user32.MessageBoxW(0, "Made it.", "", 1)
         plot23.errorbar(firstToFirst[:,0], firstToFirst[:,1], yerr=firstToFirst[:,2], linestyle = "none", color = "r", fmt = "o", label = "first-to-first");
@@ -142,7 +142,6 @@ def pairAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, accu
         outputName = (dataRepositoryPath + date + "\\" + fileName + "_run" + str(runNumber) + "_pair"
                       + "(" + str(location1[0] + 1) + "," + str(location1[1] + 1) + "), (" + str(location1[0] + 1) 
                           + "," + str(location1[1] + 1) + ")" + ".tsv");
-        ctypes.windll.user32.MessageBoxW(0, "Made it2.", "", 1)
         with open(outputName, "w") as record_file:
             # accumulations is special since it's an integer.
             record_file.write(str(accumulations) + "\n");
@@ -248,17 +247,17 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
     sys.path.append("C:\\Users\\Mark\\Documents\\My Data Analysis")
     from astropy.io import fits
     import numpy
+    import ctypes
     numpy.set_printoptions(threshold=numpy.nan)
     from matplotlib.pyplot import  subplots, show, gcf
     from matplotlib.cm import get_cmap
     from dataAnalysisFunctions import (normalizeData, binData, guessGaussianPeaks, doubleGaussian, fitDoubleGaussian, 
                                        calculateAtomThreshold, getAnalyzedSurvivalData);
-
-    
     #
+    #dataRepositoryPath = "C:\\Users\\Mark\\Documents\\Quantum Gas Assembly Control\\Data\\Camera Data\\"
     dataRepositoryPath = "\\\\andor\\share\\Data and documents\\Data repository\\";
-    todaysDataPath = dataRepositoryPath + date + "\\data_" + str(runNumber) + ".fits";
-    keyPath = dataRepositoryPath + date + "\\key_" + str(runNumber) + ".txt";
+    todaysDataPath = dataRepositoryPath + date + "\\Raw Data\\data_" + str(runNumber) + ".fits";
+    keyPath = dataRepositoryPath + date + "\\Raw Data\\key_" + str(runNumber) + ".txt";
     # Load Key
     key = numpy.array([]);
     with open(keyPath) as keyFile:
@@ -271,15 +270,19 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
     # the .shape member of an array gives an array of the dimesnions of the array.
     numberOfPictures = rawData.shape[0];
     numberOfExperiments = int(numberOfPictures / picturesPerExperiment);
+    # get accumulation image
+    accumulationImage = numpy.zeros((rawData.shape[1], rawData.shape[2]));
+    for imageInc in range(0, int(rawData.shape[0])):
+        accumulationImage += rawData[imageInc];
     # Initial Data Analysis
     #
-        #return str(array(analysisLocations).shape);
     ###########################################################################
     #
     #       Loop for each atom to analyze
     #
     threshold = 0;
-    numberAtomsToAnalyze = (array(analysisLocations).shape)[0];
+    thresholdFidelity = 0;
+    numberAtomsToAnalyze = (array(analysisLocations).shape)[0];       
     for atomInc in range(0, int(numberAtomsToAnalyze/2)):
         atomLocation = array([analysisLocations[2 * atomInc], analysisLocations[2 * atomInc + 1]]);
         peakData = [];
@@ -321,22 +324,26 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
         # Plot Stuff
         #
         myFigure, ((plot11, plot12, plot13), (plot21, plot22, plot23)) = subplots(2, 3, figsize = (25,12))
-        myFigure.suptitle("Data for location {" + str(atomLocation[0] + 1) + "," + str(atomLocation[1] + 1) + "}", fontsize = 24);        
+        myFigure.suptitle(fileName + "_run" + str(runNumber) + "Data for location {" + str(atomLocation[0] + 1) + "," + str(atomLocation[1] + 1) + "}", fontsize = 24);        
         figObject = gcf()
         figObject.canvas.set_window_title("{" + str(atomLocation[0] + 1) + "," + str(atomLocation[1] + 1) + "}")
         # make an image
-        plot11.imshow(rawData[10], interpolation='none', cmap = get_cmap("bone"));
-        plot11.set_title("Example Raw Image")
+        plot11.imshow(accumulationImage, interpolation='none', cmap = get_cmap("bone"));
+        plot11.set_title("Entire Run Accumulation Image")
         # First counts histogram
         plot12.hist(firstExperimentData, 50);
         plot12.set_title("First Picture of Experiment Pixel Count Histogram");
         plot12.set_ylabel("Occurance Count");
         plot12.set_xlabel("Pixel Counts");
         # plot loading probabilities
-        plot13.plot(fullCaptureData[:,0], fullCaptureData[:,1], linestyle = "none");
+        plot13.plot(fullCaptureData[:,0], fullCaptureData[:,1], "o");
         plot13.set_title("Average Loading Efficiency: " + str(atomCount / firstExperimentData.size * 100) + "%");
+
         plot13.set_ylabel("Occurance Count");
         plot13.set_xlabel("Pixel Counts");
+        plot13.set_ylim([-0.05, 1.05]);
+        xRange = max(fullCaptureData[:,0]) - min(fullCaptureData[:,0]);
+        plot13.set_xlim([min(fullCaptureData[:,0]) - xRange / 10.0, max(fullCaptureData[:,0]) + xRange / 10.0]);
         # plot the fit on top of the histogram
         plot21.plot(binCenters, binnedData, "o", markersize = 3);
         fineXData = numpy.linspace(min(peakData),max(peakData),500);
@@ -355,6 +362,8 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
         plot23.set_ylabel("% Survived")
         plot23.set_xlabel("Variation Parameter Value")
         plot23.set_ylim([-0.05, 1.05])
+        xRange = max(survivalData[:,0]) - min(survivalData[:,0]);
+        plot23.set_xlim([min(survivalData[:,0]) - xRange / 10.0, max(survivalData[:,0]) + xRange / 10.0]);
         # Export Data And Close
         # 
         fitsInfo.close()
