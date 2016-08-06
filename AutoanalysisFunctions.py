@@ -14,10 +14,14 @@ def pairAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, accu
     from matplotlib.cm import get_cmap
     from dataAnalysisFunctions import (normalizeData, binData, guessGaussianPeaks, doubleGaussian, fitDoubleGaussian, 
                                        calculateAtomThreshold, getAnalyzedTunnelingData);    
+    from matplotlib.font_manager import FontProperties
     #
     dataRepositoryPath = "\\\\andor\\share\\Data and documents\\Data repository\\";
-    todaysDataPath = dataRepositoryPath + date + "\\data_" + str(runNumber) + ".fits";
-    keyPath = dataRepositoryPath + date + "\\key_" + str(runNumber) + ".txt";
+    #   dataRepositoryPath = "\\\\andor\\share\\Data and documents\\Data repository\\";
+    #   todaysDataPath = dataRepositoryPath + date + "\\Raw Data\\data_" + str(runNumber) + ".fits";
+    #   keyPath = dataRepositoryPath + date + "\\Raw Data\\key_" + str(runNumber) + ".txt";
+    todaysDataPath = dataRepositoryPath + date + "\\Raw Data\\data_" + str(runNumber) + ".fits";
+    keyPath = dataRepositoryPath + date + "\\Raw Data\\key_" + str(runNumber) + ".txt";
     # Load Key
     key = numpy.array([]);
     with open(keyPath) as keyFile:
@@ -27,13 +31,16 @@ def pairAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, accu
     # Get the array from the fits file. That's all I care about.
     fitsInfo = (fits.open(todaysDataPath, "append"));
     rawData = fitsInfo[0].data;
+    accumulationImage = numpy.zeros((rawData.shape[1], rawData.shape[2]));
+    for imageInc in range(0, int(rawData.shape[0])):
+        accumulationImage += rawData[imageInc];
     # the .shape member of an array gives an array of the dimesnions of the array.
     numberOfPictures = rawData.shape[0];
     numberOfExperiments = int(numberOfPictures / picturesPerExperiment);
     #
     numberAtomsToAnalyze = (array(analysisLocations).shape)[0];
     for atomInc in range(0, int(numberAtomsToAnalyze/4)):
-        location1 = array([analysisLocations[4 * atomInc], analysisLocations[4 * atomInc + 1]]);        
+        location1 = array([analysisLocations[4 * atomInc], analysisLocations[4 * atomInc + 1]]);            
         location2 = array([analysisLocations[4 * atomInc + 2], analysisLocations[4 * atomInc + 3]]);        
         allAtomData = [[],[]];
         firstExperimentData = [[],[]];
@@ -70,15 +77,15 @@ def pairAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, accu
             = getAnalyzedTunnelingData(allAtomData, thresholds, key, accumulations, numberOfExperiments);
         myFigure, ((plot11, plot12, plot13), (plot21, plot22, plot23)) = subplots(2, 3, figsize = (25,12))
         myFigure.suptitle("Data for locations {" + str(location1[0] + 1) + "," 
-                          + str(location1[1] + 1) + "}, {" + str(location1[0] + 1) 
-                          + "," + str(location1[1] + 1) + "}", fontsize = 24);
+                          + str(location1[1] + 1) + "} and {" + str(location2[0] + 1) 
+                          + "," + str(location2[1] + 1) + "}", fontsize = 24);
         figObject = gcf()
         figObject.canvas.set_window_title("{" + str(location1[0] + 1) + "," 
-                          + str(location1[1] + 1) + "}, {" + str(location1[0] + 1) 
-                          + "," + str(location1[1] + 1) + "}")
+                          + str(location1[1] + 1) + "}, {" + str(location2[0] + 1) 
+                          + "," + str(location2[1] + 1) + "}")
         # make an image
-        plot11.imshow(rawData[10], interpolation='none', cmap = get_cmap("bone"));
-        plot11.set_title("Example Raw Image")
+        plot11.imshow(accumulationImage, interpolation='none', cmap = get_cmap("bone"))
+        plot11.set_title("All Pictures Accumulation Image")
         
         # First counts histogram
         plot12.hist(firstExperimentData[0], 50, color='r');
@@ -134,7 +141,9 @@ def pairAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, accu
         plot23.set_ylim([-0.05, 1.05])
         xRange = max(firstToFirst[:,0]) - min(firstToFirst[:,0]);
         plot23.set_xlim([min(firstToFirst[:,0]) - xRange / 10.0, max(firstToFirst[:,0]) + xRange / 10.0]);
-        plot23.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+        font = FontProperties()
+        font.set_size('small')
+        plot23.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., prop = font)
         # Export data exactly how it used to be exported using mathematica, so that a mathematica file can read it. 
         fitsInfo.close()
         #collatedData = {accumulations, peakData, key, toPlot, captProbs, dataRaw, toPlot2, toPlotBoth, toPlotBoth11, 
@@ -324,7 +333,7 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
         # Plot Stuff
         #
         myFigure, ((plot11, plot12, plot13), (plot21, plot22, plot23)) = subplots(2, 3, figsize = (25,12))
-        myFigure.suptitle(fileName + "_run" + str(runNumber) + "Data for location {" + str(atomLocation[0] + 1) + "," + str(atomLocation[1] + 1) + "}", fontsize = 24);        
+        myFigure.suptitle("\"" + fileName + "_run" + str(runNumber) + "\" Data for location {" + str(atomLocation[0] + 1) + "," + str(atomLocation[1] + 1) + "}", fontsize = 24);        
         figObject = gcf()
         figObject.canvas.set_window_title("{" + str(atomLocation[0] + 1) + "," + str(atomLocation[1] + 1) + "}")
         # make an image
@@ -440,4 +449,6 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
 #                 
 #singlePointAnalysis(date, runNumber, 1, 3, picturesPerExperiment, accumulations, "stuff")
 
+# def pairAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, accumulations, fileName):
+#pairAnalysis("160805", 19, {4,2,6,2}, 2, 150, "test")
 
