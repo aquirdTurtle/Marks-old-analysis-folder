@@ -191,124 +191,273 @@ def getAnalyzedSurvivalData(data, threshold, key, accumulations, numberOfExperim
 def getAnalyzedTunnelingData(data, thresholds, key, accumulations, numberOfExperiments):
     from numpy import (append, array, average, column_stack, std, sqrt)
     # all the posibilities that I care about.
-    firstToFirst = array([]);
-    firstToSecond = array([]);
-    secondToFirst = array([]);
-    secondToSecond = array([]);
-    bothToBoth = array([]);
-    bothToOne = array([]);
+    firstToFirst = array([])
+    firstToSecond = array([])
+    secondToFirst = array([])
+    secondToSecond = array([])
+    bothToBoth = array([])
+    bothToOne = array([])
     
     for experimentInc in range(0, numberOfExperiments):
         # start with atom in first and not in second
         if data[0][2 * experimentInc] > thresholds[0] and data[1][2 * experimentInc] < thresholds[1]:
             # if in second picture atom in first and not in second
             if data[0][2 * experimentInc + 1] > thresholds[0] and data[1][2 * experimentInc + 1] < thresholds[1]:
-                firstToFirst = append(firstToFirst, 1);
-                firstToSecond = append(firstToSecond, 0);
+                firstToFirst = append(firstToFirst, 1)
+                firstToSecond = append(firstToSecond, 0)
             elif data[0][2 * experimentInc + 1] < thresholds[0] and data[1][2 * experimentInc + 1] > thresholds[1]:
-                firstToFirst = append(firstToFirst, 0);
-                firstToSecond = append(firstToSecond, 1);
+                firstToFirst = append(firstToFirst, 0)
+                firstToSecond = append(firstToSecond, 1)
             else:
-                firstToFirst = append(firstToFirst, 0);
-                firstToSecond = append(firstToSecond, 0);
+                firstToFirst = append(firstToFirst, 0)
+                firstToSecond = append(firstToSecond, 0)
 
-            secondToFirst = append(secondToFirst, -1);
-            secondToSecond = append(secondToSecond, -1);                
-            bothToBoth = append(bothToBoth, -1);
-            bothToOne = append(bothToOne, -1);
+            secondToFirst = append(secondToFirst, -1)
+            secondToSecond = append(secondToSecond, -1)
+            bothToBoth = append(bothToBoth, -1)
+            bothToOne = append(bothToOne, -1)
         #start with atom in second and not first.
         elif data[0][2 * experimentInc] < thresholds[0] and data[1][2 * experimentInc] > thresholds[1]:
-            firstToFirst = append(firstToFirst, -1);
-            firstToSecond = append(firstToSecond, -1);
+            firstToFirst = append(firstToFirst, -1)
+            firstToSecond = append(firstToSecond, -1)
 
             if data[0][2 * experimentInc + 1] > thresholds[0] and data[1][2 * experimentInc + 1] < thresholds[1]:
-                secondToFirst = append(secondToFirst, 1);
-                secondToSecond = append(secondToSecond, 0);
+                secondToFirst = append(secondToFirst, 1)
+                secondToSecond = append(secondToSecond, 0)
             elif data[0][2 * experimentInc + 1] < thresholds[0] and data[1][2 * experimentInc + 1] > thresholds[1]:
-                secondToFirst = append(secondToFirst, 0);
-                secondToSecond = append(secondToSecond, 1);
+                secondToFirst = append(secondToFirst, 0)
+                secondToSecond = append(secondToSecond, 1)
             else:
-                secondToFirst = append(secondToFirst, 0);
-                secondToSecond = append(secondToSecond, 0);
-            bothToBoth = append(bothToBoth, -1);
-            bothToOne = append(bothToOne, -1);
+                secondToFirst = append(secondToFirst, 0)
+                secondToSecond = append(secondToSecond, 0)
+            bothToBoth = append(bothToBoth, -1)
+            bothToOne = append(bothToOne, -1)
         # start with two atoms
         elif data[0][2 * experimentInc] > thresholds[0] and data[1][2 * experimentInc] > thresholds[1]:
-            firstToFirst = append(firstToFirst, -1);
-            firstToSecond = append(firstToSecond, -1);
-            secondToFirst = append(secondToFirst, -1);
-            secondToSecond = append(secondToSecond, -1);      
+            firstToFirst = append(firstToFirst, -1)
+            firstToSecond = append(firstToSecond, -1)
+            secondToFirst = append(secondToFirst, -1)
+            secondToSecond = append(secondToSecond, -1)
             if data[0][2 * experimentInc + 1] > thresholds[0] and data[1][2 * experimentInc + 1] < thresholds[1]:
-                bothToOne = append(bothToOne, 1);
-                bothToBoth = append(bothToBoth, 0);
+                bothToOne = append(bothToOne, 1)
+                bothToBoth = append(bothToBoth, 0)
             elif data[0][2 * experimentInc + 1] < thresholds[0] and data[1][2 * experimentInc + 1] > thresholds[1]:
-                bothToOne = append(bothToOne, 1);
-                bothToBoth = append(bothToBoth, 0);
+                bothToOne = append(bothToOne, 1)
+                bothToBoth = append(bothToBoth, 0)
             elif data[0][2 * experimentInc + 1] > thresholds[0] and data[1][2 * experimentInc + 1] > thresholds[1]:
-                bothToOne = append(bothToOne, 0);
-                bothToBoth = append(bothToBoth, 1);                
+                bothToOne = append(bothToOne, 0)
+                bothToBoth = append(bothToBoth, 1)
             else:
-                bothToOne = append(bothToOne, 0);
-                bothToBoth = append(bothToBoth, 0);
+                bothToOne = append(bothToOne, 0)
+                bothToBoth = append(bothToBoth, 0)
         # start with no atoms
         else:
-            firstToFirst = append(firstToFirst, -1);
-            firstToSecond = append(firstToSecond, -1);
-            secondToFirst = append(secondToFirst, -1);
-            secondToSecond = append(secondToSecond, -1);                  
-            bothToOne = append(bothToOne, -1);
-            bothToBoth = append(bothToBoth, -1);
-    averageFirstToFirst = array([]);
-    averageFirstToSecond = array([]);
-    averageBothToBoth = array([]);
-    averageBothToOne = array([]);
-    captProbs = [[],[]];
-    stdev = array([]);
-    stdev2 = array([]);
-    stdevBoth  = array([]);
-    stdevBoth11 = array([]);
-    ctsList = array([]);
-    lctsList = array([]);
-    stdevC = array([]);
+            firstToFirst = append(firstToFirst, -1)
+            firstToSecond = append(firstToSecond, -1)
+            secondToFirst = append(secondToFirst, -1)
+            secondToSecond = append(secondToSecond, -1)
+            bothToOne = append(bothToOne, -1)
+            bothToBoth = append(bothToBoth, -1)
+
+    average_1to1 = array([])
+    average_1to2 = array([])
+    average_2to1 = array([])
+    average_2to2 = array([])
+    averageBothToBoth = array([])
+    averageBothToOne = array([])
+    captProbs = [[], []]
+    error_1to1 = array([])
+    error_1to2 = array([])
+    error_2to1 = array([])
+    error_2to2 = array([])
+    error_BothToBoth = array([])
+    error_BothToOne = array([])
+    ctsList = array([])
+    lctsList = array([])
     for variationInc in range(0, int(firstToFirst.size/accumulations)):
-        cts = array([]);
-        cts2 = array([]);
-        ctsBoth = array([]);
-        ctsBoth11 = array([]);
+        firstToFirstData = array([])
+        firstToSecondData = array([])
+        secondToFirstData = array([])
+        secondToSecondData = array([])
+        data_BothToBoth = array([])
+        data_BothToOne = array([])
         for accumInc in range (0, accumulations):
-            picNum = variationInc * accumulations + accumInc;
-            if (firstToFirst[picNum] != -1):
-                cts = append(cts, firstToFirst[picNum]);
-            if (firstToSecond[picNum] != -1):
-                cts2 = append(cts2, firstToSecond[picNum]);
-            if (bothToBoth[picNum] != -1):
-                ctsBoth = append(ctsBoth, bothToBoth[picNum]);
-            if (bothToOne[picNum] != -1):
-                ctsBoth11 = append(ctsBoth11, bothToOne[picNum]);
-        captProbs[0] = append(captProbs[0], (cts.size + ctsBoth.size) / accumulations);
-        captProbs[1] = append(captProbs[1], (cts2.size + ctsBoth.size) / accumulations);
-        averageFirstToFirst = append(averageFirstToFirst, average(cts));
-        averageFirstToSecond = append(averageFirstToSecond, average(cts2));
-        averageBothToBoth = append(averageBothToBoth, average(ctsBoth));
-        averageBothToOne = append(averageBothToOne, average(ctsBoth11));
-        stdev = append(stdev, std(cts) / sqrt(cts.size));
-        stdev2 = append(stdev2, std(cts2) / sqrt(cts2.size));
-        stdevBoth = append(stdevBoth, std(ctsBoth) / sqrt(ctsBoth.size));
-        stdevBoth11 = append(stdevBoth11, std(ctsBoth11) / sqrt(ctsBoth11.size));
-        ctsList = append(ctsList, average(cts));
-        lctsList = append(lctsList, sqrt(cts.size));
-        stdevC = append(stdevC, std(cts));
+            picNum = variationInc * accumulations + accumInc
+            if firstToFirst[picNum] != -1:
+                firstToFirstData = append(firstToFirstData, firstToFirst[picNum])
+            if firstToSecond[picNum] != -1:
+                firstToSecondData = append(firstToSecondData, firstToSecond[picNum])
+            if bothToBoth[picNum] != -1:
+                data_BothToBoth = append(data_BothToBoth, bothToBoth[picNum])
+            if bothToOne[picNum] != -1:
+                data_BothToOne = append(data_BothToOne, bothToOne[picNum])
+            if secondToFirst[picNum] != -1:
+                secondToFirstData = append(secondToFirstData, secondToFirst[picNum])
+            if secondToSecond[picNum] != -1:
+                secondToSecondData = append(secondToSecondData, secondToSecond[picNum])
+        captProbs[0] = append(captProbs[0], (firstToFirstData.size + data_BothToBoth.size) / accumulations)
+        captProbs[1] = append(captProbs[1], (firstToSecondData.size + data_BothToBoth.size) / accumulations)
+        average_1to1 = append(average_1to1, average(firstToFirstData))
+        average_1to2 = append(average_1to2, average(firstToSecondData))
+        average_2to1 = append(average_2to1, average(secondToFirstData))
+        average_2to2 = append(average_2to2, average(secondToSecondData))
+        averageBothToBoth = append(averageBothToBoth, average(data_BothToBoth))
+        averageBothToOne = append(averageBothToOne, average(data_BothToOne))
+        error_1to1 = append(error_1to1, std(firstToFirstData) / sqrt(firstToFirstData.size))
+        error_1to2 = append(error_1to2, std(firstToSecondData) / sqrt(firstToSecondData.size))
+        error_2to1 = append(error_2to1, std(secondToFirstData) / sqrt(secondToFirstData.size))
+        error_2to2 = append(error_2to2, std(secondToSecondData) / sqrt(secondToSecondData.size))
+        error_BothToBoth = append(error_BothToBoth, std(data_BothToBoth) / sqrt(data_BothToBoth.size))
+        error_BothToOne = append(error_BothToOne, std(data_BothToOne) / sqrt(data_BothToOne.size))
+        ctsList = append(ctsList, average(firstToFirstData))
+        lctsList = append(lctsList, sqrt(firstToFirstData.size))
+
     # condense data for export.
-    dataSpectra = column_stack((key, averageFirstToFirst));
-    dataSpectra2 = column_stack((key, averageFirstToSecond));
-    dataSpectraBoth = column_stack((key, averageBothToBoth));
-    captureData1 = column_stack((key, captProbs[0]));
-    captureData2 = column_stack((key, captProbs[1]));
-    dataSpectraBoth11 = column_stack((key, averageBothToOne));
-    toPlot = column_stack((dataSpectra, stdev));
-    toPlot2 = column_stack((dataSpectra2, stdev2));
-    toPlotBoth = column_stack((dataSpectraBoth, stdevBoth));
-    toPlotBoth11 = column_stack((dataSpectraBoth11, stdevBoth11));
-    toPlotSum = column_stack((key, averageFirstToFirst + averageFirstToSecond, sqrt(stdev**2 + stdev2**2)));
-    return toPlot, toPlot2, toPlotBoth, toPlotBoth11, captureData1, captureData2, toPlotSum;
-   
+    survival_1 = average_1to1+average_1to2
+    error_survival_1 = sqrt(error_1to1**2 + error_1to2**2)
+    survival_2 = average_2to1+average_2to2
+    error_survival_2 = sqrt(error_2to1**2 + error_2to2**2)
+    # lots to return. Might be better way to do this.
+    return (average_1to1, error_1to1, average_1to2, error_1to2, average_2to1, error_2to1, average_2to2, error_2to2,
+            averageBothToBoth, error_BothToBoth, averageBothToOne, error_BothToOne, captProbs[0], captProbs[1],
+            survival_1, error_survival_1, survival_2, error_survival_2)
+
+
+def getPostSelectedTunnelingData(data, thresholds, key, accumulations, numberOfExperiments):
+    from numpy import (append, array, average, column_stack, std, sqrt)
+    # all the posibilities that I care about.
+    firstToFirst = array([])
+    firstToSecond = array([])
+    secondToFirst = array([])
+    secondToSecond = array([])
+    bothToBoth = array([])
+    bothToOne = array([])
+    # analyze all data points, looking for atoms.
+    for experimentInc in range(0, numberOfExperiments):
+        # start with atom in first and not in second
+        if data[0][2 * experimentInc] > thresholds[0] and data[1][2 * experimentInc] < thresholds[1]:
+            # if in second picture atom in first and not in second
+            if data[0][2 * experimentInc + 1] > thresholds[0] and data[1][2 * experimentInc + 1] < thresholds[1]:
+                firstToFirst = append(firstToFirst, 1)
+                firstToSecond = append(firstToSecond, 0)
+            elif data[0][2 * experimentInc + 1] < thresholds[0] and data[1][2 * experimentInc + 1] > thresholds[1]:
+                firstToFirst = append(firstToFirst, 0)
+                firstToSecond = append(firstToSecond, 1)
+            else:
+                # this is the difference between post-selection and not. Not post-selected means that these data points
+                # go to zero and get counted.
+                firstToFirst = append(firstToFirst, -1)
+                firstToSecond = append(firstToSecond, -1)
+            secondToFirst = append(secondToFirst, -1)
+            secondToSecond = append(secondToSecond, -1)
+            bothToBoth = append(bothToBoth, -1)
+            bothToOne = append(bothToOne, -1)
+        # start with atom in second and not first.
+        elif data[0][2 * experimentInc] < thresholds[0] and data[1][2 * experimentInc] > thresholds[1]:
+            firstToFirst = append(firstToFirst, -1)
+            firstToSecond = append(firstToSecond, -1)
+            if data[0][2 * experimentInc + 1] > thresholds[0] and data[1][2 * experimentInc + 1] < thresholds[1]:
+                secondToFirst = append(secondToFirst, 1)
+                secondToSecond = append(secondToSecond, 0)
+            elif data[0][2 * experimentInc + 1] < thresholds[0] and data[1][2 * experimentInc + 1] > thresholds[1]:
+                secondToFirst = append(secondToFirst, 0)
+                secondToSecond = append(secondToSecond, 1)
+            else:
+                # post-select.
+                secondToFirst = append(secondToFirst, -1)
+                secondToSecond = append(secondToSecond, -1)
+            bothToBoth = append(bothToBoth, -1)
+            bothToOne = append(bothToOne, -1)
+        # start with two atoms
+        elif data[0][2 * experimentInc] > thresholds[0] and data[1][2 * experimentInc] > thresholds[1]:
+            firstToFirst = append(firstToFirst, -1)
+            firstToSecond = append(firstToSecond, -1)
+            secondToFirst = append(secondToFirst, -1)
+            secondToSecond = append(secondToSecond, -1)
+            if data[0][2 * experimentInc + 1] > thresholds[0] and data[1][2 * experimentInc + 1] < thresholds[1]:
+                bothToOne = append(bothToOne, 1)
+                bothToBoth = append(bothToBoth, 0)
+            elif data[0][2 * experimentInc + 1] < thresholds[0] and data[1][2 * experimentInc + 1] > thresholds[1]:
+                # other case for both-to-one.
+                bothToOne = append(bothToOne, 1)
+                bothToBoth = append(bothToBoth, 0)
+            elif data[0][2 * experimentInc + 1] > thresholds[0] and data[1][2 * experimentInc + 1] > thresholds[1]:
+                bothToOne = append(bothToOne, 0)
+                bothToBoth = append(bothToBoth, 1)
+            else:
+                # there is no post-select on two-atom loss.
+                bothToOne = append(bothToOne, 0)
+                bothToBoth = append(bothToBoth, 0)
+        # start with no atoms
+        else:
+            firstToFirst = append(firstToFirst, -1)
+            firstToSecond = append(firstToSecond, -1)
+            secondToFirst = append(secondToFirst, -1)
+            secondToSecond = append(secondToSecond, -1)
+            bothToOne = append(bothToOne, -1)
+            bothToBoth = append(bothToBoth, -1)
+
+    average_1to1 = array([])
+    average_1to2 = array([])
+    average_2to1 = array([])
+    average_2to2 = array([])
+    averageBothToBoth = array([])
+    averageBothToOne = array([])
+    captProbs = [[], []]
+    error_1to1 = array([])
+    error_1to2 = array([])
+    error_2to1 = array([])
+    error_2to2 = array([])
+    error_BothToBoth = array([])
+    error_BothToOne = array([])
+    ctsList = array([])
+    lctsList = array([])
+    for variationInc in range(0, int(firstToFirst.size / accumulations)):
+        firstToFirstData = array([])
+        firstToSecondData = array([])
+        secondToFirstData = array([])
+        secondToSecondData = array([])
+        data_BothToBoth = array([])
+        data_BothToOne = array([])
+        for accumInc in range(0, accumulations):
+            picNum = variationInc * accumulations + accumInc
+            if firstToFirst[picNum] != -1:
+                firstToFirstData = append(firstToFirstData, firstToFirst[picNum])
+            if firstToSecond[picNum] != -1:
+                firstToSecondData = append(firstToSecondData, firstToSecond[picNum])
+            if bothToBoth[picNum] != -1:
+                data_BothToBoth = append(data_BothToBoth, bothToBoth[picNum])
+            if bothToOne[picNum] != -1:
+                data_BothToOne = append(data_BothToOne, bothToOne[picNum])
+            if secondToFirst[picNum] != -1:
+                secondToFirstData = append(secondToFirstData, secondToFirst[picNum])
+            if secondToSecond[picNum] != -1:
+                secondToSecondData = append(secondToSecondData, secondToSecond[picNum])
+
+        captProbs[0] = append(captProbs[0], (firstToFirstData.size + data_BothToBoth.size) / accumulations)
+        captProbs[1] = append(captProbs[1], (secondToSecondData.size + data_BothToBoth.size) / accumulations)
+        average_1to1 = append(average_1to1, average(firstToFirstData))
+        average_1to2 = append(average_1to2, average(firstToSecondData))
+        average_2to1 = append(average_2to1, average(secondToFirstData))
+        average_2to2 = append(average_2to2, average(secondToSecondData))
+        averageBothToBoth = append(averageBothToBoth, average(data_BothToBoth))
+        averageBothToOne = append(averageBothToOne, average(data_BothToOne))
+        error_1to1 = append(error_1to1, std(firstToFirstData) / sqrt(firstToFirstData.size))
+        error_1to2 = append(error_1to2, std(firstToSecondData) / sqrt(firstToSecondData.size))
+        error_2to1 = append(error_2to1, std(secondToFirstData) / sqrt(secondToFirstData.size))
+        error_2to2 = append(error_2to2, std(secondToSecondData) / sqrt(secondToSecondData.size))
+        error_BothToBoth = append(error_BothToBoth, std(data_BothToBoth) / sqrt(data_BothToBoth.size))
+        error_BothToOne = append(error_BothToOne, std(data_BothToOne) / sqrt(data_BothToOne.size))
+        ctsList = append(ctsList, average(firstToFirstData))
+        lctsList = append(lctsList, sqrt(firstToFirstData.size))
+    # condense data for export.
+    survival_1 = average_1to1 + average_1to2
+    error_survival_1 = sqrt(error_1to1 ** 2 + error_1to2 ** 2)
+    survival_2 = average_2to1 + average_2to2
+    error_survival_2 = sqrt(error_2to1 ** 2 + error_2to2 ** 2)
+
+    # lots to return. Might be better way to do this.
+    return (average_1to1, error_1to1, average_1to2, error_1to2, average_2to1, error_2to1, average_2to2, error_2to2,
+            averageBothToBoth, error_BothToBoth, averageBothToOne, error_BothToOne, captProbs[0], captProbs[1],
+            survival_1, error_survival_1, survival_2, error_survival_2)
+
