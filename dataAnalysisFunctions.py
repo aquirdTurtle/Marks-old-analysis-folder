@@ -14,13 +14,13 @@ This function analyzes raw data at the location "atom location" and returns a no
 def normalizeData(picsPerExperiment, rawData, atomLocation):
 
     from numpy import append, array
-    firstData = array([]); 
-    allData = array([]);
-    dimensions = rawData.shape;
+    firstData = array([])
+    allData = array([])
+    dimensions = rawData.shape
     for imageInc in range(0, dimensions[0]):
         averageBackground = 1/4*(rawData[imageInc][0][0] 
                                  + rawData[imageInc][dimensions[1]-1][dimensions[2]-1] 
-                                 + rawData[imageInc][0][dimensions[2]-1] 
+                                 + rawData[imageInc][0][dimensions[2]   -1]
                                  + rawData[imageInc][dimensions[1]-1][0])
         allData = append(allData, rawData[imageInc][atomLocation[0]][atomLocation[1]] - averageBackground);
         if imageInc % picsPerExperiment == 0:
@@ -128,65 +128,201 @@ def calculateAtomThreshold(fitVals):
     threshold = fitVals[1] + TCalc * fitVals[2];
     fidelity = 1/2 * (1 + erf(abs(TCalc)/sqrt(2)))
     return threshold, fidelity
-    
-"""
-This function assumes 2 pictures.
-It returns
-(1) Survival Data W/ Errors
-(2) Full capture probabilty
-(3) Capture Probability Array (for mathematica export format consistency only)
-"""
-def getAnalyzedSurvivalData(data, threshold, key, accumulations, numberOfExperiments):
+
+
+def getAtomData(data, threshold, numberOfExperiments):
+    """
+    This function assumes 2 pictures.
+    It returns
+    (1) Survival Data W/ Errors
+    (2) Full capture probabilty
+    (3) Capture Probability Array (for mathematica export format consistency only)
+    """
     from numpy import (append, array, average, column_stack, std, sqrt)
-    survivalRawData = array([]);
-    survivalRawData.astype(int);
-    numberTransferred = 0;
-    # this doesn't take into account loss!
-    for experimentInc in range(0, numberOfExperiments - 1):
+    # this will include entries for when there is no atom in the first picture.
+    survivalData = array([])
+    survivalData.astype(int)
+    # this doesn't take into account loss, since these experiments are feeding-back on loss.
+    for experimentInc in range(0, numberOfExperiments):
         if data[2 * experimentInc] > threshold and data[2 * experimentInc + 1] >= threshold:
-            numberTransferred += 1;
-            #atom survived
-            survivalRawData = append(survivalRawData, 1);
+            # atom survived
+            survivalData = append(survivalData, 1)
         elif data[2 * experimentInc] > threshold and data[2 * experimentInc + 1] < threshold:
-            #atom didn't survive            
-            survivalRawData= append(survivalRawData, 0);
+            # atom didn't survive 
+            survivalData = append(survivalData, 0)
         else:
             # no atom in the first place
-            survivalRawData= append(survivalRawData, -1);
-    # fractionTransferred = numberTransferred / numberOfExperiments;
-    ###
-    averageFractionTransfered = array([]);
-    captureProbabilities = array([]);
-    standardDeviation = array([]);
-    ctsList = array([]);
-    lctsList = array([]);
-    stdevC = array([]);
-    for variationInc in range(0, int(survivalRawData.size / (accumulations - 1)) ):
-        cts = array([]);
-        for accumulationInc in range(0, accumulations - 1):
-            if survivalRawData[variationInc * accumulations + accumulationInc] != -1:
-                cts = append(cts, survivalRawData[variationInc * accumulations + accumulationInc]);
-        # catch the case where there's no relevant data, typically if laser becomes unlocked.
-        if cts.size == 0:
-            #print(cts.size)
-            standardDeviation = append(standardDeviation, 0);
-            captureProbabilities = append(captureProbabilities, 0);
-            averageFractionTransfered = append(averageFractionTransfered, 0);
-            ctsList = append(ctsList, 0);
-            lctsList = append(lctsList, 0);
-            stdevC = append(stdevC, 0);
+            survivalData = append(survivalData, -1)
+    return survivalData
+
+
+def getSingleParticleSurvivalData(survivalData, repetitionsPerVariation):
+    import numpy as np
+    # Take the previous data, which includes entries when there was no atom in the first picture, and convert it to
+    # an array of just loaded and survived or loaded and died.    
+    survivalAverages = np.array([])
+    loadingProbability = np.array([])
+    survivalErrors = np.array([])
+    for variationInc in range(0, int(survivalData.size / repetitionsPerVariation)):
+        survivalList = np.array([])
+        for repetitionInc in range(0, repetitionsPerVariation):
+            if survivalData[variationInc * repetitionsPerVariation + repetitionInc] != -1:
+                survivalList = np.append(survivalList, survivalData[variationInc * repetitionsPerVariation + repetitionInc])
+        if survivalList.size == 0:
+            # catch the case where there's no relevant data, typically if laser becomes unlocked.
+            survivalErrors = np.append(survivalErrors, 0)
+            loadingProbability = np.append(loadingProbability, 0)
+            survivalAverages = np.append(survivalAverages, 0)
         else:
-            #print(cts.size)
-            standardDeviation = append(standardDeviation, std(cts)/sqrt(cts.size));
-            captureProbabilities = append(captureProbabilities, cts.size / accumulations);
-            averageFractionTransfered = append(averageFractionTransfered, average(cts));
-            ctsList = append(ctsList, average(cts.size));
-            lctsList = append(lctsList, sqrt(cts.size));
-            stdevC = append(stdevC, std(cts));
-    dataSpectra = column_stack((key, averageFractionTransfered));
-    survivalData = column_stack((dataSpectra, standardDeviation));
-    fullCaptureProbabilityData = column_stack((array(key), captureProbabilities));
-    return survivalData, fullCaptureProbabilityData, captureProbabilities 
+            # normal case
+            survivalErrors = np.append(survivalErrors, np.std(survivalList)/np.sqrt(survivalList.size))
+            loadingProbability = np.append(loadingProbability, survivalList.size / repetitionsPerVariation)
+            survivalAverages = np.append(survivalAverages, np.average(survivalList))
+
+    return survivalAverages, survivalErrors, loadingProbability
+
+
+def getCorrelationData(allAtomSurvivalData, repetitionsPerVariation):
+    from collections import OrderedDict as dic
+    import numpy as np
+    import math
+    atomNum = allAtomSurvivalData.shape[0]
+    repNum = allAtomSurvivalData.shape[1]
+    correlationErrors = dic()
+    correlationAverages = dic()
+    correlationErrors['Key List'] = ''
+    correlationAverages['Key List'] = ''
+    # initialize the average dicts
+    for atomsLoadedInc in range(1, atomNum + 1):
+        for atomSurvivedInc in range(0, atomNum):
+            name = 'Load ' + str(atomsLoadedInc) + ', atom ' + str(atomSurvivedInc) + ' survived'
+            correlationErrors[name] = []
+            correlationAverages[name] = []
+    # data that doesn't discriminate between locations.
+    for atomsLoadedInc in range(1, atomNum + 1):
+        # + 1 because all atoms could survive.
+        for atomSurvivedInc in range(0, atomsLoadedInc + 1):
+            name = 'Load ' + str(atomsLoadedInc) + ', ' + str(atomSurvivedInc) + ' atoms survived'
+            correlationErrors[name] = []
+            correlationAverages[name] = []
+    # holds the averages over wells
+    for atomsLoadedInc in range(1, atomNum + 1):
+        name = 'Load ' + str(atomsLoadedInc) + ', average single atom survival'
+        correlationErrors[name] = []
+        correlationAverages[name] = []
+    # holds the average over all wells and loading scenarios.
+    name = 'Total average single atom survival'
+    correlationErrors[name] = []
+    correlationAverages[name] = []
+    # Start sorting data.
+    for variationInc in range(0, int(repNum / repetitionsPerVariation)):
+        totalNumberLoadedList = []
+        totalNumberSurvivedList = []
+        for repInc in range(0, repetitionsPerVariation):
+            totalAtomsLoaded = 0
+            totalAtomsSurvived = 0
+            holeFlag = False
+            for atomInc in range(0, atomNum):
+                if allAtomSurvivalData[atomInc][variationInc * repetitionsPerVariation + repInc] == 0:
+                    if holeFlag:
+                        totalAtomsSurvived = math.nan
+                        totalAtomsLoaded = math.nan
+                        break
+                    totalAtomsLoaded += 1
+                elif allAtomSurvivalData[atomInc][variationInc * repetitionsPerVariation + repInc] == 1:
+                    if holeFlag:
+                        totalAtomsSurvived = math.nan
+                        totalAtomsLoaded = math.nan
+                        break
+                    totalAtomsSurvived += 1
+                    totalAtomsLoaded += 1
+                else:
+                    # no atom loaded here.
+                    if totalAtomsLoaded > 0:
+                        holeFlag = True
+            totalNumberLoadedList = np.append(totalNumberLoadedList, totalAtomsLoaded)
+            totalNumberSurvivedList = np.append(totalNumberSurvivedList, totalAtomsSurvived)
+        # initialize entries in temporary dictionary. Sanity, mostly, probably a way around this.
+        tempCorrelationData = dic()
+        for atomsLoadedInc in range(1, atomNum + 1):
+            for atomSurvivedInc in range(0, atomNum):
+                name = 'Load ' + str(atomsLoadedInc) + ', atom ' + str(atomSurvivedInc) + ' survived'
+                tempCorrelationData[name] = []
+        # data that doesn't discriminate between locations.
+        for atomsLoadedInc in range(1, atomNum + 1):
+            # + 1 because all atoms could survive.
+            for atomSurvivedInc in range(0, atomsLoadedInc + 1):
+                name = 'Load ' + str(atomsLoadedInc) + ', ' + str(atomSurvivedInc) + ' atoms survived'
+                tempCorrelationData[name] = []
+        # holds the averages over wells
+        for atomsLoadedInc in range(1, atomNum + 1):
+            name = 'Load ' + str(atomsLoadedInc) + ', average single atom survival'
+            tempCorrelationData[name] = []
+        # holds the average over all wells and loading scenarios.
+        tempCorrelationData['Total average single atom survival'] = []
+        # get data for specific particles surviving.
+        for atomInc in range(0, atomNum):
+            for repInc in range(0, repetitionsPerVariation):
+                if math.isnan(totalNumberLoadedList[repInc]) or totalNumberLoadedList[repInc] == 0:
+                    # no atoms loaded or hole so throw the data out.
+                    continue
+                name = 'Load ' + str(int(totalNumberLoadedList[repInc])) \
+                       + ', atom ' + str(atomInc) + ' survived'
+                name2 = 'Load ' + str(int(totalNumberLoadedList[repInc])) + ', average single atom survival'
+                # make sure *THIS* atom was loaded originally.
+                if allAtomSurvivalData[atomInc][variationInc * repetitionsPerVariation + repInc] != -1:
+                    value = allAtomSurvivalData[atomInc][variationInc * repetitionsPerVariation + repInc]
+                    tempCorrelationData[name] = np.append(tempCorrelationData[name], value)
+                    tempCorrelationData[name2] = np.append(tempCorrelationData[name2], value)
+                    tempCorrelationData['Total average single atom survival'] \
+                        = np.append(tempCorrelationData['Total average single atom survival'], value)
+        #print(tempCorrelationData)
+        # get indiscriminatory data.
+        for repInc in range(0, repetitionsPerVariation):
+            if math.isnan(totalNumberLoadedList[repInc]) or int(totalNumberLoadedList[repInc]) == 0:
+                # throw away holes
+                continue
+            for atomsSurvivedInc in range(0, int(totalNumberLoadedList[repInc]) + 1):
+                name = 'Load ' + str(int(totalNumberLoadedList[repInc])) + ', ' + str(atomsSurvivedInc) \
+                       + ' atoms survived'
+                if totalNumberSurvivedList[repInc] == atomsSurvivedInc:
+                    tempCorrelationData[name] = np.append(tempCorrelationData[name], 1)
+                else:
+                    tempCorrelationData[name] = np.append(tempCorrelationData[name], 0)
+        # calculate averages
+        averageLoadAverageWell = []
+        for atomsLoadedInc in range(1, atomNum + 1):
+            correlationAveragesOverWells = np.array([])
+            wellData = []
+            for atomSurvivedInc in range(0, atomNum):
+                name = 'Load ' + str(atomsLoadedInc) + ', atom ' + str(atomSurvivedInc) + ' survived'
+                correlationAverages[name] = np.append(correlationAverages[name], np.mean(tempCorrelationData[name]))
+                correlationErrors[name] = np.append(correlationErrors[name], np.std(tempCorrelationData[name])
+                                                    / np.sqrt(tempCorrelationData[name].size))
+            name2 = 'Load ' + str(atomsLoadedInc) + ', average single atom survival'
+
+            correlationAverages[name2] = np.append(correlationAverages[name2], np.mean(tempCorrelationData[name2]))
+            correlationErrors[name2] = np.append(correlationErrors[name2],
+                                                 np.std(tempCorrelationData[name2])
+                                                 / np.sqrt(len(tempCorrelationData[name2])))
+        totalName = 'Total average single atom survival'
+        correlationAverages[totalName] = np.append(correlationAverages[totalName],
+                                                   np.mean(tempCorrelationData[totalName]))
+        correlationErrors[totalName] = np.append(correlationErrors[totalName],
+                                                   np.std(tempCorrelationData[totalName])
+                                                 / np.sqrt(len(tempCorrelationData[totalName])))
+        # data that doesn't discriminate between locations.
+        for atomsLoadedInc in range(1, atomNum + 1):
+            # + 1 because all atoms could survive.
+            for atomSurvivedInc in range(0, atomsLoadedInc + 1):
+                name = 'Load ' + str(atomsLoadedInc) + ', ' + str(atomSurvivedInc) + ' atoms survived'
+                correlationAverages[name] = np.append(correlationAverages[name], np.mean(tempCorrelationData[name]))
+                correlationErrors[name] = np.append(correlationErrors[name], np.std(tempCorrelationData[name])
+                                                    / np.sqrt(tempCorrelationData[name].size))
+    correlationErrors['Key List'] = list(correlationErrors.keys())
+    correlationAverages['Key List'] = list(correlationAverages.keys())
+    return correlationAverages, correlationErrors
+
 
 def getAnalyzedTunnelingData(data, thresholds, key, accumulations, numberOfExperiments):
     from numpy import (append, array, average, column_stack, std, sqrt)
@@ -281,7 +417,7 @@ def getAnalyzedTunnelingData(data, thresholds, key, accumulations, numberOfExper
         secondToSecondData = array([])
         data_BothToBoth = array([])
         data_BothToOne = array([])
-        for accumInc in range (0, accumulations):
+        for accumInc in range(0, accumulations):
             picNum = variationInc * accumulations + accumInc
             if firstToFirst[picNum] != -1:
                 firstToFirstData = append(firstToFirstData, firstToFirst[picNum])

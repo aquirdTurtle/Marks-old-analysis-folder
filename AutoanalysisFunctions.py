@@ -96,7 +96,6 @@ def pairAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, accu
                                           + str(location1[1] + 1) + "}, {" + str(location2[0] + 1)
                                           + "," + str(location2[1] + 1) + "}")
         # make an image
-        #print(accumulationImage)
         accumulationPlot.imshow(accumulationImage, interpolation='none', cmap=get_cmap("bone"))
         accumulationPlot.set_title("All Pictures Accumulation Image")
 
@@ -112,8 +111,9 @@ def pairAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, accu
         # plot loading probabilities
         loadingPlot.plot(key, captProbs1, linestyle="none", marker="o", color='r', label="atom 1")
         loadingPlot.plot(key, captProbs2, linestyle="none", marker="o", color='b', label="atom 2")
-        loadingPlot.set_title("Average Loading Efficiencies: " + "{:.1f}".format(atomCount1 / firstExperimentData[0].size * 100)
-                         + "% and " + "{:.1f}".format(atomCount2 / firstExperimentData[1].size * 100) + "%")
+        loadingPlot.set_title("Average Loading Efficiencies: "
+                              + "{:.1f}".format(atomCount1 / firstExperimentData[0].size * 100)
+                              + "% and " + "{:.1f}".format(atomCount2 / firstExperimentData[1].size * 100) + "%")
         loadingPlot.set_ylabel("Capture Probabilies")
         loadingPlot.set_xlabel("Experiment Parameter")
         loadingPlot.grid(True)
@@ -161,8 +161,8 @@ def pairAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, accu
         transferPlot.legend(bbox_to_anchor=(1, 1), loc=2, borderaxespad=0., prop=font)
 
         # two-particle data.
-        twoParticleDataPlot.errorbar(key, averageBothToBoth, yerr=error_BothToBoth, linestyle="none", color="c", fmt="o",
-                                     label="both-to-both")
+        twoParticleDataPlot.errorbar(key, averageBothToBoth, yerr=error_BothToBoth, linestyle="none", color="c",
+                                     fmt="o", label="both-to-both")
         twoParticleDataPlot.errorbar(key, averageBothToOne, yerr=error_BothToOne, linestyle="none", color="m", fmt="o",
                                      label="both-to-one")
         twoParticleDataPlot.errorbar(key, survival_1, yerr=error_survival_1, linestyle="none", color="g", fmt="o",
@@ -187,9 +187,9 @@ def pairAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, accu
                       + "," + str(location1[1] + 1) + ")" + ".tsv")
         myFigure.suptitle("\"" + fileName + "_run" + str(runNumber) + "_pair"
                       + "(" + str(location1[0] + 1) + "," + str(location1[1] + 1) + "), (" + str(location2[0] + 1)
-                      + "," + str(location2[1] + 1) + ")" + ".tsv" + "\"Data for locations {" + str(location1[0] + 1) + ","
-                          + str(location1[1] + 1) + "} and {" + str(location2[0] + 1)
-                          + "," + str(location2[1] + 1) + "}", fontsize=24)
+                      + "," + str(location2[1] + 1) + ")" + ".tsv" + "\"Data for locations {" + str(location1[0] + 1)
+                          + "," + str(location1[1] + 1) + "} and {" + str(location2[0] + 1) + ","
+                          + str(location2[1] + 1) + "}", fontsize=24)
         with open(outputName, "w") as record_file:
             # ## 1 ###
             # accumulations is special since it's an integer.
@@ -323,206 +323,302 @@ def pairAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, accu
     return ""
 
 
-def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, accumulations, fileName):
+def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, repetitions, fileName):
+    # this appears in all data files.
     from numpy import array
     import sys
     sys.path.append("C:\\Users\\Mark\\Documents\\My Data Analysis")
     from astropy.io import fits
-    import numpy
-    import ctypes
-    numpy.set_printoptions(threshold=numpy.nan)
-    from matplotlib.pyplot import subplots, show, gcf
+    import numpy as np
+    np.set_printoptions(threshold=np.nan)
+    import matplotlib.pyplot as plt
     from matplotlib.cm import get_cmap
+    from collections import OrderedDict as dic
     from dataAnalysisFunctions import (normalizeData, binData, guessGaussianPeaks, doubleGaussian, fitDoubleGaussian,
-                                       calculateAtomThreshold, getAnalyzedSurvivalData);
-    #
-    # dataRepositoryPath = "C:\\Users\\Mark\\Documents\\Quantum Gas Assembly Control\\Data\\Camera Data\\"
-    dataRepositoryPath = "\\\\andor\\share\\Data and documents\\Data repository\\";
-    todaysDataPath = dataRepositoryPath + date + "\\Raw Data\\data_" + str(runNumber) + ".fits";
-    keyPath = dataRepositoryPath + date + "\\Raw Data\\key_" + str(runNumber) + ".txt";
+                                       calculateAtomThreshold, getCorrelationData, getAtomData,
+                                       getSingleParticleSurvivalData)
+    baseData = dic()
+    baseData['Key List'] = ''
+    baseData['Date'] = date
+    baseData['Run Number'] = runNumber
+    baseData['Repetitions'] = repetitions
+    baseData['Pictures Per Experiment'] = picturesPerExperiment
+
+    #dataRepositoryPath = "C:\\Users\\Mark\\Documents\\Quantum Gas Assembly Control\\Data\\Camera Data\\"
+    dataRepositoryPath = "\\\\andor\\share\\Data and documents\\Data repository\\"
+    todaysDataPath = dataRepositoryPath + date + "\\Raw Data\\data_" + str(baseData['Run Number']) + ".fits"
+    keyPath = dataRepositoryPath + date + "\\Raw Data\\key_" + str(baseData['Run Number']) + ".txt"
     # Load Key
-    key = numpy.array([]);
+    baseData['Key'] = np.array([])
     with open(keyPath) as keyFile:
         for line in keyFile:
-            key = numpy.append(key, float(line.strip('\n')))
+            baseData['Key'] = np.append(baseData['Key'], float(line.strip('\n')))
     # Load Fits File & Get Dimensions
     # Get the array from the fits file. That's all I care about.
-    fitsInfo = (fits.open(todaysDataPath, "append"));
-    rawData = fitsInfo[0].data;
-    # the .shape member of an array gives an array of the dimesnions of the array.
-    numberOfPictures = rawData.shape[0];
-    numberOfExperiments = int(numberOfPictures / picturesPerExperiment);
+    fitsInfo = fits.open(todaysDataPath, "append")
+    #baseData['Raw Data'] = fitsInfo[0].data
+    rawData = fitsInfo[0].data
+    numberOfPictures = rawData.shape[0]
+    numberOfExperiments = int(numberOfPictures / picturesPerExperiment)
     # get accumulation image
-    accumulationImage = numpy.zeros((rawData.shape[1], rawData.shape[2]));
+    accumulationImage = np.zeros((rawData.shape[1], rawData.shape[2]))
     for imageInc in range(0, int(rawData.shape[0])):
-        accumulationImage += rawData[imageInc];
-    # Initial Data Analysis
-    #
+        accumulationImage += rawData[imageInc]
+    fitsInfo.close()
+
     ###########################################################################
     #
     #       Loop for each atom to analyze
     #
-    threshold = 0;
-    thresholdFidelity = 0;
-    numberAtomsToAnalyze = (array(analysisLocations).shape)[0];
+    numberAtomsToAnalyze = np.array(analysisLocations).shape[0]
+    # array of lists.
+    allAtomSurvivalData = np.array([[]])
     for atomInc in range(0, int(numberAtomsToAnalyze / 2)):
-        atomLocation = array([analysisLocations[2 * atomInc], analysisLocations[2 * atomInc + 1]]);
-        peakData = [];
-        firstExperimentData = [];
+        print('Analyzing atom #' + str(atomInc))
+        tempData = dic()
+        tempData['Key List'] = ''
+        tempData['Atom Location'] = array([analysisLocations[2 * atomInc], analysisLocations[2 * atomInc + 1]])
         # my function here.
-        peakData, firstExperimentData = normalizeData(picturesPerExperiment, rawData, atomLocation);
+        tempData['Data Counts'], firstExperimentData = normalizeData(picturesPerExperiment, rawData,
+                                                                 tempData['Atom Location'])
         # normalizeData(picturesPerExperiment, rawData, atomLocation);
         # ### Histogram
         # Plot histogram 
         # Get Binned Data
-        binCenters, binnedData = binData(5, peakData);
+        binCenters, binnedData = binData(5, tempData['Data Counts'])
         # Make educated Guesses for Peaks
-        guess1, guess2 = guessGaussianPeaks(peakData, binCenters, binnedData);
+        guess1, guess2 = guessGaussianPeaks(tempData['Data Counts'], binCenters, binnedData)
 
         # Calculate Atom Threshold
         # define the fitting function
-        guess = numpy.array([100, guess1, 30, 200, guess2, 10]);
-        gaussianFitVals = fitDoubleGaussian(binCenters, binnedData, guess);
-        threshold, thresholdFidelity = calculateAtomThreshold(gaussianFitVals);
-        #     
-        atomCount = 0;
+        guess = np.array([100, guess1, 30, 200, guess2, 10])
+        gaussianFitVals = fitDoubleGaussian(binCenters, binnedData, guess)
+        tempData['Threshold'], tempData['Threshold Fidelity'] = calculateAtomThreshold(gaussianFitVals)
+        #
+        atomCount = 0
         for experimentInc in range(0, firstExperimentData.size):
-            if firstExperimentData[experimentInc] > threshold:
-                atomCount += 1;
-        print("Average Loading Efficiency: " + str(atomCount / firstExperimentData.size * 100) + "%")
+            if firstExperimentData[experimentInc] > tempData['Threshold']:
+                atomCount += 1
 
-        # ### Coalate Data        
         # Get Data in final form for exporting
-        survivalData, fullCaptureData, captureArray = getAnalyzedSurvivalData(peakData, threshold, key, accumulations,
-                                                                              numberOfExperiments);
-        collatedData = [accumulations, peakData, key, survivalData, captureArray, rawData, fullCaptureData];
-        # Survival Data
-        # Plot survival data.
+        tempData['Atoms Data'] = getAtomData(tempData['Data Counts'], tempData['Threshold'], numberOfExperiments)
+        allAtomSurvivalData.resize((allAtomSurvivalData.shape[0], len(tempData['Atoms Data'])))
+        if atomInc == 0:
+            allAtomSurvivalData[0] = tempData['Atoms Data']
+        else:
+            allAtomSurvivalData = np.append(allAtomSurvivalData, np.array([tempData['Atoms Data']]), 0)
+
+        tempData['Survival Averages'], tempData['Survival Errors'], tempData['Loading Probabilities'] \
+            = getSingleParticleSurvivalData(tempData['Atoms Data'], baseData['Repetitions'])
+
         ###########
         # 
-        # Plot Stuff
+        # Plot Data
         #
-        myFigure, ((plot11, plot12, plot13), (plot21, plot22, plot23)) = subplots(2, 3, figsize=(25, 12))
-        myFigure.suptitle(
-            "\"" + fileName + "_run" + str(runNumber) + "\" Data for location {" + str(atomLocation[0] + 1) + "," + str(
-                atomLocation[1] + 1) + "}", fontsize=24);
-        figObject = gcf()
-        figObject.canvas.set_window_title("{" + str(atomLocation[0] + 1) + "," + str(atomLocation[1] + 1) + "}")
-        # make an image
-        plot11.imshow(accumulationImage, interpolation='none', cmap=get_cmap("bone"));
-        plot11.set_title("Entire Run Accumulation Image")
-        # First counts histogram
-        plot12.hist(firstExperimentData, 50);
-        plot12.set_title("First Picture of Experiment Pixel Count Histogram");
-        plot12.set_ylabel("Occurance Count");
-        plot12.set_xlabel("Pixel Counts");
-        # plot loading probabilities
-        plot13.plot(fullCaptureData[:, 0], fullCaptureData[:, 1], "o");
-        plot13.set_title("Average Loading Efficiency: " + str(atomCount / firstExperimentData.size * 100) + "%");
+        # Carrier Plot
+        myFig = plt.figure(atomInc, facecolor="white", figsize=(20, 8))
+        mainPlot = plt.subplot2grid((4, 4), (0, 0), colspan=3, rowspan=4)
+        mainPlot.errorbar(baseData["Key"], tempData["Survival Averages"],
+                          yerr=tempData["Survival Errors"], ls='', marker='o', label="well 6", color='b',
+                          capsize=6, elinewidth=3)
+        mainPlot.set_ylim({-0.02, 1.01})
+        mainPlot.set_title("Survival Probability Throughout Experiment", fontsize=30)
+        mainPlot.set_ylabel("Survival Probability", fontsize=20)
+        mainPlot.set_xlabel("Key Value", fontsize=20)
+        #mainPlot.legend(loc="upper center", bbox_to_anchor=(0.5, -0.1), fancybox=True, ncol=4)
+        mainPlot.grid("on")
+        # Capture Probabilities Plot
+        capturePlot = plt.subplot2grid((4, 4), (0, 3))
+        capturePlot.plot(baseData['Key'], tempData["Loading Probabilities"], ls='', marker='o', color='b')
+        capturePlot.set_ylim({0, 1})
+        capturePlot.set_xlabel("Key Value")
+        capturePlot.set_ylabel("Loading %")
+        capturePlot.set_title("Loading Probabilities")
+        capturePlot.grid("on")
+        # Count Series Plot
+        countDataPlot = plt.subplot2grid((4, 4), (1, 3))
+        countDataPlot.plot(tempData["Data Counts"], 'b', ls='', marker='.', markersize=1)
+        countDataPlot.set_xlabel("Picture #")
+        countDataPlot.set_ylabel("Camera Signal")
+        countDataPlot.set_title("Camera Signal Over Time")
+        countDataPlot.grid("on")
+        # Accumulation Image
+        accumulationImagePlot = plt.subplot2grid((4, 4), (2, 3))
+        accumulationImagePlot.imshow(accumulationImage, interpolation='none', cmap=get_cmap("bone"))
+        accumulationImagePlot.set_title("Entire Run Accumulation Image")
+        # info plot
+        infoPlot = plt.subplot2grid((4, 4), (3, 3))
+        infoPlot.axis("off")
+        infoPlot.text(0, 0.0, "Repetitions: " + str(baseData["Repetitions"]))
+        infoPlot.text(0, 0.2, "Analysis Location: " + str(tempData["Atom Location"]))
+        infoPlot.text(0, 1.0, "Date: " + str(baseData["Date"]))
+        infoPlot.text(0, 0.8, "Run #: " + str(baseData["Run Number"]))
+        infoPlot.text(0, 0.6, "Fit Threshold: " + str(tempData['Threshold']))
+        infoPlot.text(0, 0.4, "Fit Threshold Fidelity: " + str(tempData['Threshold Fidelity']))
+        plt.tight_layout()
+        # add the data to the main data object.
+        tempData['Key List'] = list(tempData.keys())
+        baseData[str(analysisLocations[2 * atomInc]) + ", " + str(analysisLocations[2 * atomInc + 1])] = tempData
 
-        plot13.set_ylabel("Occurance Count");
-        plot13.set_xlabel("Pixel Counts");
-        plot13.set_ylim([-0.05, 1.05]);
-        xRange = max(fullCaptureData[:, 0]) - min(fullCaptureData[:, 0]);
-        plot13.set_xlim([min(fullCaptureData[:, 0]) - xRange / 10.0, max(fullCaptureData[:, 0]) + xRange / 10.0]);
-        # plot the fit on top of the histogram
-        plot21.plot(binCenters, binnedData, "o", markersize=3);
-        fineXData = numpy.linspace(min(peakData), max(peakData), 500);
-        plot21.plot(fineXData, doubleGaussian(fineXData, *gaussianFitVals))
-        plot21.axvline(x=threshold, color='r', ls='dashed');
-        plot21.set_title("Fits. Threshold = " + str(threshold));
-        plot21.set_ylabel("Occurance Count");
-        plot21.set_xlabel("Pixel Counts");
-        plot22.plot(peakData, ".", markersize=1);
-        plot22.set_title("Pixel Count Data Over Time");
-        plot22.set_ylabel("Count on Pixel");
-        plot22.set_xlabel("Picture Number");
-        plot23.errorbar(survivalData[:, 0], survivalData[:, 1],
-                        yerr=survivalData[:, 2], linestyle="none");
-        plot23.set_title("Survival Data for Each Variation")
-        plot23.set_ylabel("% Survived")
-        plot23.set_xlabel("Variation Parameter Value")
-        plot23.set_ylim([-0.05, 1.05])
-        xRange = max(survivalData[:, 0]) - min(survivalData[:, 0]);
-        plot23.set_xlim([min(survivalData[:, 0]) - xRange / 10.0, max(survivalData[:, 0]) + xRange / 10.0]);
-        # Export Data And Close
-        # 
-        fitsInfo.close()
-        # collatedData = [accumulations, peakData, key, survivalData, captureProbabilities, rawData, captureProbabilities];
-        outputName = dataRepositoryPath + date + "\\" + fileName + "_run" + str(runNumber) + "_well" + str(
-            atomLocation[0] + 1) + str(atomLocation[1] + 1) + ".tsv";
-        print("data outputted to file " + outputName)
-        with open(outputName, "w") as record_file:
-            # accumulations is special since it's an integer.
-            record_file.write(str(collatedData[0]) + "\n");
-            ### Version for mathematica compatibility
-            # Peak Data
-            for peakInc in range(0, peakData.size):
-                record_file.write(str(peakData[peakInc]) + "\t");
-            record_file.write("\n");
-            # key
-            for keyInc in range(0, key.size - 1):
-                record_file.write(str(key[keyInc]) + "\t");
-            record_file.write(str(key[key.size - 1]));
-            record_file.write("\n");
-            # survival data
-            survivalDimensions = survivalData.shape;
-            for survivalPointsInc in range(0, survivalDimensions[0] - 1):
-                record_file.write(str("{{"));
-                record_file.write(str(survivalData[survivalPointsInc][0]) + ", ");
-                record_file.write(str(survivalData[survivalPointsInc][1]) + "}, ");
-                record_file.write("ErrorBar[" + str(survivalData[survivalPointsInc][2]) + "]");
-                record_file.write(str("}\t"));
-            record_file.write(str("{{"));
-            record_file.write(str(survivalData[survivalDimensions[0] - 1][0]) + ", ");
-            record_file.write(str(survivalData[survivalDimensions[0] - 1][1]) + "}, ");
-            record_file.write("ErrorBar[" + str(survivalData[survivalDimensions[0] - 1][2]) + "]");
-            record_file.write(str("}"));
-            record_file.write("\n")
-            # capture probabilities data
-            for captureInc in range(0, captureArray.size):
-                record_file.write(str(captureArray[captureInc]) + " ");
-            record_file.write("\n");
-            # raw data
-            rawDataDimensions = rawData.shape;
-            for pictureInc in range(0, rawDataDimensions[0]):
-                record_file.write("{");
-                for rowInc in range(0, rawDataDimensions[1]):
-                    record_file.write("{");
-                    for columnInc in range(0, rawDataDimensions[2]):
-                        record_file.write(str(rawData[pictureInc][rowInc][columnInc]) + " ")
-                    record_file.write("} ")
-                record_file.write("}");
-            record_file.write("\n");
-            # full Capture Probabilitiy Data (capture probabilities with x values?)
-            fullCaptureDataDimensions = fullCaptureData.shape;
-            for variationInc in range(0, fullCaptureDataDimensions[0]):
-                record_file.write("{" + str(fullCaptureData[variationInc][0]) + ", "
-                                  + str(fullCaptureData[variationInc][1]) + "} ");
-                # sensible version
-                # for dataInc in range(1,len(collatedData)):
-                # record_file.write(str(collatedData[dataInc][0:len(collatedData[dataInc])]) + "\n");
-    show()
-    print("function.")
-    return ("Threshold Found: " + str(threshold) + "\r\nThreshold Fidelity: " + str(thresholdFidelity * 100) + "%")
+    print('Getting Correlation Data...')
+    baseData['Correlation Averages'], baseData['Correlation Errors'] = getCorrelationData(allAtomSurvivalData, baseData['Repetitions'])
+    # Plot correlation Data
+    myFig = plt.figure(atomInc + 1, facecolor="white", figsize=(20, 8))
+    numberSurvivedPlot = plt.subplot2grid((4, 4), (0, 0), colspan=2, rowspan=2)
+    for atomInc in range(1, int(numberAtomsToAnalyze / 2) + 1):
+        name = 'Load ' + str(atomInc) + ', 1 atoms survived'
+        numberSurvivedPlot.errorbar(baseData['Key'], baseData['Correlation Averages'][name],
+                                    yerr=baseData['Correlation Errors'][name], label=str(atomInc) + '-1',
+                                    linestyle='none', marker='o', markersize=1)
+    numberSurvivedPlot.set_ylim({-0.05, 1.05})
+    xrange = max(baseData['Key']) - min(baseData['Key'])
+    pixelNum = allAtomSurvivalData.shape[0]
+    numberSurvivedPlot.set_xlim([min(baseData['Key']) - xrange / baseData['Key'].size,
+                       max(baseData['Key']) + xrange / baseData['Key'].size])
+    numberSurvivedPlot.set_xlabel('Key Value')
+    numberSurvivedPlot.set_ylabel('Survival %')
+    numberSurvivedPlot.set_ylim({-0.05, 1.05})
+    numberSurvivedPlot.grid(True)
+    numberSurvivedPlot.legend()
+    numberSurvivedPlot.set_title('Chance that 1 Survived Probabilities')
 
-    # In[]:
+    averagePlot = plt.subplot2grid((4, 4), (0, 2), colspan=2, rowspan=2)
+    for atomsLoadedInc in range(1, int(numberAtomsToAnalyze/2) + 1):
+        name = 'Load ' + str(atomsLoadedInc) + ', average single atom survival'
+        averagePlot.errorbar(baseData["Key"], baseData['Correlation Averages'][name],
+                             yerr=baseData['Correlation Errors'][name], linestyle='none', marker='o',
+                             label='Load ' + str(atomsLoadedInc))
+    averagePlot.set_ylim({-0.05, 1.05})
+    xrange = max(baseData['Key']) - min(baseData['Key'])
+    averagePlot.set_xlim([min(baseData['Key']) - xrange / baseData['Key'].size,
+                          max(baseData['Key']) + xrange / baseData['Key'].size])
+    averagePlot.set_xlabel('Key Value')
+    averagePlot.set_ylabel('Survival %')
+    averagePlot.set_ylim({-0.05, 1.05})
+    averagePlot.grid(True)
+    averagePlot.legend()
+    averagePlot.set_title('Average single Well Survival Probabilities')
+
+    repNum = allAtomSurvivalData.shape[1]
+    wellPlot = plt.subplot2grid((4, 4), (2, 0), colspan=3, rowspan=2)
+    if int(repNum / baseData['Repetitions']) == 1:
+        # plot each pixel as a number, don't look at key
+        pixels = list(range(1, pixelNum + 1))
+        fourToOneData = []
+        fourToOneError = []
+        oneToOneData = []
+        oneToOneError = []
+        for pixelInc in range(1, pixelNum + 1):
+            name = 'Load ' + str(pixelNum) + ', atom ' + str(pixelInc-1) + ' survived'
+            fourToOneData.append(baseData['Correlation Averages'][name][0])
+            fourToOneError.append(baseData['Correlation Errors'][name][0])
+            name = 'Load 1, atom ' + str(pixelInc-1) + ' survived'
+            oneToOneData.append(baseData['Correlation Averages'][name][0])
+            oneToOneError.append(baseData['Correlation Errors'][name][0])
+        wellPlot.errorbar(pixels, fourToOneData, yerr=fourToOneError, linestyle="none", marker='o', color='blue',
+                          label=str(pixelNum) + '-1', markersize=1)
+        wellPlot.errorbar(pixels, oneToOneData, yerr=oneToOneError, linestyle="none", marker='o', color='red',
+                          label='1-1', markersize=1)
+        wellPlot.set_xlim([0, pixelNum + 1])
+        wellPlot.set_xlabel('Well #')
+        wellPlot.set_ylabel('Survival %')
+        wellPlot.set_ylim({-0.05, 1.05})
+        wellPlot.grid(True)
+        wellPlot.legend(bbox_to_anchor=(1, 1), loc=2, borderaxespad=0.)
+        wellPlot.set_title('Individual Well Survival Probabilities')
+    else:
+        pixelNum = allAtomSurvivalData.shape[0]
+        pixels = range(1, pixelNum + 1)
+        for pixelInc in range(1, pixelNum):
+            name = 'Load ' + str(pixelNum) + ', atom ' + str(pixelInc) + ' survived'
+            fourToOneData = baseData['Correlation Averages'][name]
+            fourToOneError = baseData['Correlation Errors'][name]
+            name = 'Load 1, atom ' + str(pixelInc) + ' survived'
+            oneToOneData = baseData['Correlation Averages'][name][0]
+            oneToOneError = baseData['Correlation Errors'][name][0]
+            wellPlot.errorbar(pixels, fourToOneData, yerr=fourToOneError, linestyle="none", marker='o',
+                              label=str(pixelNum) + '-' + str(pixelInc))
+            wellPlot.errorbar(pixels, oneToOneData, yerr=oneToOneError, linestyle="none", marker='o',
+                              label='1-' + str(pixelInc))
+        xrange = max(baseData['Key']) - min(baseData['Key'])
+        if xrange == 0:
+            xrange = 1
+
+        wellPlot.set_xlim([min(baseData['Key']) - xrange / baseData['Key'].size,
+                           max(baseData['Key']) + xrange/baseData['Key'].size, pixelNum + 1])
+        wellPlot.set_xlabel('Key Value')
+        wellPlot.set_ylabel('Survival %')
+        wellPlot.set_ylim({-0.05, 1.05})
+        wellPlot.grid(True)
+        wellPlot.legend(bbox_to_anchor=(1, 1), loc=2, borderaxespad=0.)
+        wellPlot.set_title('Individual Well Survival Probabilities')
+    # info plot
+    infoPlot = plt.subplot2grid((4, 4), (3, 3))
+    infoPlot.axis("off")
+    infoPlot.text(0, 1.0, "Date: " + str(baseData["Date"]))
+    infoPlot.text(0, 0.8, "Run #: " + str(baseData["Run Number"]))
+    infoPlot.text(0, 0.6, "Total Atom #: " + str(int(numberAtomsToAnalyze/2)))
+    infoPlot.text(0, 0.4, "Repetitions: " + str(baseData["Repetitions"]))
+
+    myFig.tight_layout()
+    # ########################################
+    #
+    # Export Data
+    #
+    print('Prepping Data')
+    outputName = dataRepositoryPath + baseData['Date'] + "\\" + fileName + "_run" + str(
+        baseData['Run Number']) + ".csv"
+    baseData['Key List'] = list(baseData.keys())
+    csvText = ''
+    for keyHeader, value in baseData.items():
+        if isinstance(value, str):
+            # don't iterate through the string, just add it.
+            csvText += '\n:' + keyHeader + ': ' + str(value)
+            continue
+        if isinstance(value, dict):
+            # iterate through that! Assume no nested dictionaries.
+            csvText += '\n:[' + keyHeader + ']:'
+            for subHeader, subValue in value.items():
+                if subHeader == "Raw Data":
+                    # want to put this on last.
+                    continue
+                if isinstance(subValue, str):
+                    # don't iterate through the string, just add it.
+                    csvText += '\n\t;' + subHeader + '; ' + str(subValue)
+                    continue
+                try:
+                    csvText += '\n\t;' + subHeader + '; ' + ", ".join(str(x) for x in subValue)
+                except TypeError:
+                    # catch integers.
+                    csvText += '\n\t;' + subHeader + '; ' + str(subValue)
+            continue
+        try:
+            csvText += '\n:' + keyHeader + ': ' + ", ".join(str(x) for x in value)
+        except TypeError:
+            # catch integers.
+            csvText += '\n:' + keyHeader + ': ' + str(value)
+    print("Writing Data...")
+    with open(outputName, "w") as record_file:
+        record_file.write(csvText)
+    print('Complete!')
+    plt.show()
+    return
 
 # date = "160521";
 # fileName = "CarrierCalibration";
 # runNumber = 55;
 # wellIndicator = 4;
 # accumulations = 150;
-#### Zero-indexed!!!
+# ### Zero-indexed!!!
 #
-## Vertical
+# # Vertical
 # atomLocations = {1, 3, 1, 5};
-## Horizontal
-## atomLocation = [wellIndicator-1, 1];
+# # Horizontal
+# # atomLocation = [wellIndicator-1, 1];
 #
 # picturesPerExperiment = 2;
-#                 
-# singlePointAnalysis(date, runNumber, 1, 3, picturesPerExperiment, accumulations, "stuff")
+#
+singlePointAnalysis("160824", 21, [3, 1, 5, 1, 8, 1, 10, 1], 2, 10000, "testAnalysis")
 
 # def pairAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, accumulations, fileName):
-pairAnalysis("160805", 19, [3, 1, 5, 1], 2, 150, "test")
+# pairAnalysis("160805", 19, [3, 1, 5, 1], 2, 150, "test")
