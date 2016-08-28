@@ -41,16 +41,17 @@ def binData(binWidth, data):
     binCenters = binsBorders[0:binsBorders.size-1];
     return binCenters, binnedData;
 
-""" 
-This code is written to make educated guesses for where to set the initial guesses for the locations of the two 
-gaussians in the fit below. It finds the largest-binned data point in the set and sets that as one guess. It then
-finds the distance from this guess to the maximum pixel count in the set as well as the distance to the lowest pixel
-count. It takes whichever distance is smaller, and uses that information to infer which gaussian (atom or no atom)
-the guess should be for. It takes this smaller distance and takes double that distance away from the closest edge to
-define the region for this gaussian. It then finds the maximum in the remaining region, and uses this as the second 
-guess.
-"""
+
 def guessGaussianPeaks(rawData, binCenters, binnedData):
+    """
+    This code is written to make educated guesses for where to set the initial guesses for the locations of the two
+    gaussians in the fit below. It finds the largest-binned data point in the set and sets that as one guess. It then
+    finds the distance from this guess to the maximum pixel count in the set as well as the distance to the lowest pixel
+    count. It takes whichever distance is smaller, and uses that information to infer which gaussian (atom or no atom)
+    the guess should be for. It takes this smaller distance and takes double that distance away from the closest edge to
+    define the region for this gaussian. It then finds the maximum in the remaining region, and uses this as the second
+    guess.
+    """
     from numpy import absolute, argmax, min, max
     import ctypes;
     leftBorder = min(rawData);
@@ -133,10 +134,8 @@ def calculateAtomThreshold(fitVals):
 def getAtomData(data, threshold, numberOfExperiments):
     """
     This function assumes 2 pictures.
-    It returns
-    (1) Survival Data W/ Errors
-    (2) Full capture probabilty
-    (3) Capture Probability Array (for mathematica export format consistency only)
+    It returns a raw array that includes every survival data point, including points where the the atom doesn't get
+    loaded at all.
     """
     from numpy import (append, array, average, column_stack, std, sqrt)
     # this will include entries for when there is no atom in the first picture.
@@ -298,7 +297,7 @@ def getCorrelationData(allAtomSurvivalData, repetitionsPerVariation):
                 name = 'Load ' + str(atomsLoadedInc) + ', atom ' + str(atomSurvivedInc) + ' survived'
                 correlationAverages[name] = np.append(correlationAverages[name], np.mean(tempCorrelationData[name]))
                 correlationErrors[name] = np.append(correlationErrors[name], np.std(tempCorrelationData[name])
-                                                    / np.sqrt(tempCorrelationData[name].size))
+                                                    / np.sqrt(len(tempCorrelationData[name])))
             name2 = 'Load ' + str(atomsLoadedInc) + ', average single atom survival'
 
             correlationAverages[name2] = np.append(correlationAverages[name2], np.mean(tempCorrelationData[name2]))
@@ -318,7 +317,7 @@ def getCorrelationData(allAtomSurvivalData, repetitionsPerVariation):
                 name = 'Load ' + str(atomsLoadedInc) + ', ' + str(atomSurvivedInc) + ' atoms survived'
                 correlationAverages[name] = np.append(correlationAverages[name], np.mean(tempCorrelationData[name]))
                 correlationErrors[name] = np.append(correlationErrors[name], np.std(tempCorrelationData[name])
-                                                    / np.sqrt(tempCorrelationData[name].size))
+                                                    / np.sqrt(len(tempCorrelationData[name])))
     correlationErrors['Key List'] = list(correlationErrors.keys())
     correlationAverages['Key List'] = list(correlationAverages.keys())
     return correlationAverages, correlationErrors

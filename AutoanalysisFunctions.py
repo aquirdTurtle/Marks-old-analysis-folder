@@ -320,14 +320,15 @@ def pairAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, accu
     plt.tight_layout()
     plt.subplots_adjust(top=0.92, right=0.94, left=0.03)
     show()
-    return ""
+    # return not null...
+    return "Finished"
 
 
 def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, repetitions, fileName):
     # this appears in all data files.
     from numpy import array
     import sys
-    sys.path.append("C:\\Users\\Mark\\Documents\\My Data Analysis")
+    sys.path.append("C:\\Users\\Mark\\Documents\\Data-Analysis")
     from astropy.io import fits
     import numpy as np
     np.set_printoptions(threshold=np.nan)
@@ -344,8 +345,8 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
     baseData['Repetitions'] = repetitions
     baseData['Pictures Per Experiment'] = picturesPerExperiment
 
-    #dataRepositoryPath = "C:\\Users\\Mark\\Documents\\Quantum Gas Assembly Control\\Data\\Camera Data\\"
-    dataRepositoryPath = "\\\\andor\\share\\Data and documents\\Data repository\\"
+    dataRepositoryPath = "C:\\Users\\Mark\\Documents\\Quantum Gas Assembly Control\\Data\\Camera Data\\"
+    #dataRepositoryPath = "\\\\andor\\share\\Data and documents\\Data repository\\"
     todaysDataPath = dataRepositoryPath + date + "\\Raw Data\\data_" + str(baseData['Run Number']) + ".fits"
     keyPath = dataRepositoryPath + date + "\\Raw Data\\key_" + str(baseData['Run Number']) + ".txt"
     # Load Key
@@ -536,6 +537,11 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
             name = 'Load 1, atom ' + str(pixelInc) + ' survived'
             oneToOneData = baseData['Correlation Averages'][name][0]
             oneToOneError = baseData['Correlation Errors'][name][0]
+            print(pixels)
+            print(baseData['Correlation Averages'])
+            print(name)
+            print(fourToOneData)
+            print(fourToOneError)
             wellPlot.errorbar(pixels, fourToOneData, yerr=fourToOneError, linestyle="none", marker='o',
                               label=str(pixelNum) + '-' + str(pixelInc))
             wellPlot.errorbar(pixels, oneToOneData, yerr=oneToOneError, linestyle="none", marker='o',
@@ -602,7 +608,7 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
         record_file.write(csvText)
     print('Complete!')
     plt.show()
-    return
+    return "Finished"
 
 # date = "160521";
 # fileName = "CarrierCalibration";
@@ -618,7 +624,7 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
 #
 # picturesPerExperiment = 2;
 #
-singlePointAnalysis("160824", 21, [3, 1, 5, 1, 8, 1, 10, 1], 2, 10000, "testAnalysis")
+#singlePointAnalysis("160824", 21, [3, 1, 5, 1, 8, 1, 10, 1], 2, 10000, "testAnalysis")
 
 # def pairAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, accumulations, fileName):
 # pairAnalysis("160805", 19, [3, 1, 5, 1], 2, 150, "test")
