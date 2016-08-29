@@ -529,22 +529,16 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
         wellPlot.set_title('Individual Well Survival Probabilities')
     else:
         pixelNum = allAtomSurvivalData.shape[0]
-        pixels = range(1, pixelNum + 1)
         for pixelInc in range(1, pixelNum):
             name = 'Load ' + str(pixelNum) + ', atom ' + str(pixelInc) + ' survived'
             fourToOneData = baseData['Correlation Averages'][name]
             fourToOneError = baseData['Correlation Errors'][name]
             name = 'Load 1, atom ' + str(pixelInc) + ' survived'
-            oneToOneData = baseData['Correlation Averages'][name][0]
-            oneToOneError = baseData['Correlation Errors'][name][0]
-            print(pixels)
-            print(baseData['Correlation Averages'])
-            print(name)
-            print(fourToOneData)
-            print(fourToOneError)
-            wellPlot.errorbar(pixels, fourToOneData, yerr=fourToOneError, linestyle="none", marker='o',
+            oneToOneData = baseData['Correlation Averages'][name]
+            oneToOneError = baseData['Correlation Errors'][name]
+            wellPlot.errorbar(baseData['Key'], fourToOneData, yerr=fourToOneError, linestyle="none", marker='o',
                               label=str(pixelNum) + '-' + str(pixelInc))
-            wellPlot.errorbar(pixels, oneToOneData, yerr=oneToOneError, linestyle="none", marker='o',
+            wellPlot.errorbar(baseData['Key'], oneToOneData, yerr=oneToOneError, linestyle="none", marker='o',
                               label='1-' + str(pixelInc))
         xrange = max(baseData['Key']) - min(baseData['Key'])
         if xrange == 0:
@@ -567,6 +561,7 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
     infoPlot.text(0, 0.4, "Repetitions: " + str(baseData["Repetitions"]))
 
     myFig.tight_layout()
+
     # ########################################
     #
     # Export Data
