@@ -477,8 +477,6 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
         # make it slightly darker to make the red stand out.
         normalizedImage = np.array(zeroedImage) / (1.5 * np.amax(np.array(zeroedImage)))
         coloredImage = get_cmap("bone")(normalizedImage)
-        print(coloredImage[tempData['Atom Location'][0]][tempData['Atom Location'][1]])
-        print(coloredImage[tempData['Atom Location'][0]][tempData['Atom Location'][1]][0])
         # make the relevant pixel slightly redder.
         coloredImage[tempData['Atom Location'][0]][tempData['Atom Location'][1]][0] \
             += (1 - coloredImage[tempData['Atom Location'][0]][tempData['Atom Location'][1]][0]) / 2
