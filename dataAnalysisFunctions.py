@@ -22,95 +22,67 @@ def normalizeData(picsPerExperiment, rawData, atomLocation):
                                  + rawData[imageInc][dimensions[1]-1][dimensions[2]-1] 
                                  + rawData[imageInc][0][dimensions[2]   -1]
                                  + rawData[imageInc][dimensions[1]-1][0])
-        allData = append(allData, rawData[imageInc][atomLocation[0]][atomLocation[1]] - averageBackground);
+        allData = append(allData, rawData[imageInc][atomLocation[0]][atomLocation[1]] - averageBackground)
         if imageInc % picsPerExperiment == 0:
             firstData = append(firstData, rawData[imageInc][atomLocation[0]][atomLocation[1]]
-                                               - averageBackground);
+                                               - averageBackground)
     return allData, firstData
+
 
 def binData(binWidth, data):
     from numpy import append, array, min, max, histogram
-    binBorderLocation = min(data);
-    binsBorders = array([]);
+    binBorderLocation = min(data)
+    binsBorders = array([])
     # get bin borders
     while binBorderLocation < max(data):
-        binsBorders = append(binsBorders, binBorderLocation);
-        binBorderLocation = binBorderLocation + binWidth;
+        binsBorders = append(binsBorders, binBorderLocation)
+        binBorderLocation = binBorderLocation + binWidth
     # trash gets set but is unused.
-    binnedData, trash = histogram(data, binsBorders);
-    binCenters = binsBorders[0:binsBorders.size-1];
-    return binCenters, binnedData;
+    binnedData, trash = histogram(data, binsBorders)
+    binCenters = binsBorders[0:binsBorders.size-1]
+    return binCenters, binnedData
+
+
+def poisson(x, k, weight):
+    """
+    This function calculates $p_k{x} = norm * e^(-k) * k^x / x!.
+    :param x: argument of the poissonian
+    :param k: order or (approximate) mean of the poissonian.
+    :param weight: a weight factor, related to the maximum data this is supposed to be fitted to, but typically over-
+    weighted for the purposes of this function.
+    :return: the poissonian evaluated at x given the parametes.
+    """
+    import numpy as np
+    term = 1
+    # calculate the term k^x / x!. Can't do this directly, x! is too large.
+    for n in range(0, int(x)):
+        term *= k / (x - n)
+    return np.exp(-k) * term * weight
 
 
 def guessGaussianPeaks(rawData, binCenters, binnedData):
     """
-    This code is written to make educated guesses for where to set the initial guesses for the locations of the two
-    gaussians in the fit below. It finds the largest-binned data point in the set and sets that as one guess. It then
-    finds the distance from this guess to the maximum pixel count in the set as well as the distance to the lowest pixel
-    count. It takes whichever distance is smaller, and uses that information to infer which gaussian (atom or no atom)
-    the guess should be for. It takes this smaller distance and takes double that distance away from the closest edge to
-    define the region for this gaussian. It then finds the maximum in the remaining region, and uses this as the second
-    guess.
+    This function guesses where the gaussian peaks of the data are. It assumes one is near the maximum of the binned
+    data. Then, from the binned data it subtracts an over-weighted (i.e. extra tall) poissonion distribution e^-k k^n/n!
+    From the binned data. This should squelch the peak that it found. It then assumes that the second peak is near the
+    maximum of the (data-poissonian) array.
+    :param binCenters: The pixel-numbers corresponding to the binned data data points.
+    :param binnedData: the binned data data points.
+    :return: the two guesses.
     """
     from numpy import absolute, argmax, min, max
-    import ctypes;
-    leftBorder = min(rawData);
-    rightBorder = max(rawData);
-    dataRange = rightBorder - leftBorder;
+    binCenters += 500
     # get index corresponding to global max
-    guess1Index = argmax(binnedData);
+    guess1Index = argmax(binnedData)
     # get location of global max
-    guess1Location = binCenters[guess1Index];
-    # find closest side
-    distToLeft = absolute(guess1Location - leftBorder);
-    distToRight = absolute(guess1Location - rightBorder);
-    subBinnedData = {};
-    if (distToLeft < distToRight ):
-        # find index of dividing point:
-        found = False;
-        locInc = 0;
-        boundary = 0;
-        # set the boundary that the code will use to search for the second peak.
-        if (2 * distToLeft < dataRange / 3) :
-            boundary = leftBorder + dataRange / 3;
-        else:
-            boundary = leftBorder + 2 * distToLeft;      
-        while (found == False):
-            if (binCenters[locInc] < boundary):
-                locInc += 1;
-                if locInc == binCenters.size:
-                    found = True;
-                    locInc -= 1;
-            else:
-                found = True;
-        subBinnedData = binnedData[locInc:binnedData.size];
-        # get index corresponding to second local maxima
-        guess2Index = argmax(subBinnedData) + binnedData.size - subBinnedData.size;
-    elif (distToLeft >= distToRight ):
-        found = False;
-        locInc = 0;
-        boundary = 0;
-        # set the boundary that the code will use to search for the second peak.
-        if (2 * distToRight < dataRange / 3) :
-            boundary = rightBorder - dataRange / 3;
-        else:
-            boundary = rightBorder - 2 * distToRight;      
- 
-        while (found == False):
-            if (binCenters[locInc] < (rightBorder - 2 * distToRight)):
-                locInc += 1;
-                if locInc == binCenters.size:
-                    found = True;
-                    locInc -= 1;
-            else:
-                found = True;
-        subBinnedData = binnedData[0:locInc];
-        # get index corresponding to second local maxima
-        guess2Index = argmax(subBinnedData)    
-    #ctypes.windll.user32.MessageBoxW(0, "Made it.", "", 1)
-    # get location of second local maxima
-    guess2Location = binCenters[guess2Index];    
-    return guess1Location, guess2Location;
+    guess1Location = binCenters[guess1Index]
+    binnedDataWithoutPoissonian = []
+    for binInc in range(0, len(binCenters)):
+        binnedDataWithoutPoissonian.append(binnedData[binInc] - poisson(binCenters[binInc], guess1Location, max(binnedData)
+                                                                        / poisson(guess1Location, guess1Location, 1)))
+    guess2Index = argmax(binnedDataWithoutPoissonian)
+    guess2Location = binCenters[guess2Index]
+    return guess1Location - 500, guess2Location - 500
 
 def doubleGaussian(data, A1, x1, sig1, A2, x2, sig2):
     from numpy import absolute,  exp, sqrt
