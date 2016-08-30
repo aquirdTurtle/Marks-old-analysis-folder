@@ -328,6 +328,7 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
     # this appears in all data files.
     from numpy import array
     import sys
+    #sys.path.append("C:\\Users\\Mark\\Documents\\Data-Analysis")
     sys.path.append("C:\\Users\\Mark\\Documents\\Data-Analysis")
     from astropy.io import fits
     import numpy as np
@@ -345,8 +346,8 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
     baseData['Repetitions'] = repetitions
     baseData['Pictures Per Experiment'] = picturesPerExperiment
 
-    dataRepositoryPath = "C:\\Users\\Mark\\Documents\\Quantum Gas Assembly Control\\Data\\Camera Data\\"
-    #dataRepositoryPath = "\\\\andor\\share\\Data and documents\\Data repository\\"
+    #dataRepositoryPath = "C:\\Users\\Mark\\Documents\\Quantum Gas Assembly Control\\Data\\Camera Data\\"
+    dataRepositoryPath = "\\\\andor\\share\\Data and documents\\Data repository\\"
     todaysDataPath = dataRepositoryPath + date + "\\Raw Data\\data_" + str(baseData['Run Number']) + ".fits"
     keyPath = dataRepositoryPath + date + "\\Raw Data\\key_" + str(baseData['Run Number']) + ".txt"
     # Load Key
@@ -502,6 +503,9 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
 
     repNum = allAtomSurvivalData.shape[1]
     wellPlot = plt.subplot2grid((4, 4), (2, 0), colspan=3, rowspan=2)
+    print("repnum = " + str(repNum))
+    print(baseData['Repetitions'])
+    print(int(repNum / baseData['Repetitions']))
     if int(repNum / baseData['Repetitions']) == 1:
         # plot each pixel as a number, don't look at key
         pixels = list(range(1, pixelNum + 1))
@@ -529,29 +533,30 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
         wellPlot.set_title('Individual Well Survival Probabilities')
     else:
         pixelNum = allAtomSurvivalData.shape[0]
-        pixels = range(1, pixelNum + 1)
-        for pixelInc in range(1, pixelNum):
+        for pixelInc in range(0, pixelNum):
             name = 'Load ' + str(pixelNum) + ', atom ' + str(pixelInc) + ' survived'
             fourToOneData = baseData['Correlation Averages'][name]
             fourToOneError = baseData['Correlation Errors'][name]
             name = 'Load 1, atom ' + str(pixelInc) + ' survived'
-            oneToOneData = baseData['Correlation Averages'][name][0]
-            oneToOneError = baseData['Correlation Errors'][name][0]
-            print(pixels)
-            print(baseData['Correlation Averages'])
+            oneToOneData = baseData['Correlation Averages'][name]
+            oneToOneError = baseData['Correlation Errors'][name]
             print(name)
+            print(baseData['Correlation Averages'])
             print(fourToOneData)
             print(fourToOneError)
-            wellPlot.errorbar(pixels, fourToOneData, yerr=fourToOneError, linestyle="none", marker='o',
+            print(oneToOneData)
+            print(oneToOneError)
+            print(baseData['Key'])
+            wellPlot.errorbar(baseData['Key'], fourToOneData, yerr=fourToOneError, linestyle="none", marker='o',
                               label=str(pixelNum) + '-' + str(pixelInc))
-            wellPlot.errorbar(pixels, oneToOneData, yerr=oneToOneError, linestyle="none", marker='o',
+            wellPlot.errorbar(baseData['Key'], oneToOneData, yerr=oneToOneError, linestyle="none", marker='o',
                               label='1-' + str(pixelInc))
         xrange = max(baseData['Key']) - min(baseData['Key'])
         if xrange == 0:
             xrange = 1
 
         wellPlot.set_xlim([min(baseData['Key']) - xrange / baseData['Key'].size,
-                           max(baseData['Key']) + xrange/baseData['Key'].size, pixelNum + 1])
+                           max(baseData['Key']) + xrange/baseData['Key'].size])
         wellPlot.set_xlabel('Key Value')
         wellPlot.set_ylabel('Survival %')
         wellPlot.set_ylim({-0.05, 1.05})
