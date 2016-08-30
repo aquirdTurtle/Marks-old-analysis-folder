@@ -353,6 +353,7 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
     mpl.rcParams['axes.grid'] = True
     from numpy import array
     import sys
+    #sys.path.append("C:\\Users\\Mark\\Documents\\Data-Analysis")
     sys.path.append("C:\\Users\\Mark\\Documents\\Data-Analysis")
     from astropy.io import fits
     import numpy as np
@@ -537,6 +538,9 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
 
     repNum = allAtomSurvivalData.shape[1]
     wellPlot = plt.subplot2grid((4, 4), (2, 0), colspan=3, rowspan=2)
+    print("repnum = " + str(repNum))
+    print(baseData['Repetitions'])
+    print(int(repNum / baseData['Repetitions']))
     if int(repNum / baseData['Repetitions']) == 1:
         # plot each pixel as a number, don't look at key
         pixels = list(range(1, pixelNum + 1))
@@ -571,6 +575,17 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
             name = 'Load 1, atom ' + str(pixelInc) + ' survived'
             oneToOneData = baseData['Correlation Averages'][name]
             oneToOneError = baseData['Correlation Errors'][name]
+            print(name)
+            print(baseData['Correlation Averages'])
+            print(fourToOneData)
+            print(fourToOneError)
+            print(oneToOneData)
+            print(oneToOneError)
+            print(baseData['Key'])
+            wellPlot.errorbar(baseData['Key'], fourToOneData, yerr=fourToOneError, linestyle="none", marker='o',
+                              label=str(pixelNum) + '-' + str(pixelInc))
+            wellPlot.errorbar(baseData['Key'], oneToOneData, yerr=oneToOneError, linestyle="none", marker='o',
+                              label='1-' + str(pixelInc))
             wellPlot.errorbar(baseData['Key'], fourToOneData, yerr=fourToOneError, linestyle="none", marker='o',
                               label="Load " + str(pixelNum) + ', atom ' + str(pixelInc) + " survives")
             wellPlot.errorbar(baseData['Key'], oneToOneData, yerr=oneToOneError, linestyle="none", marker='o',
@@ -580,7 +595,7 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
             xrange = 1
 
         wellPlot.set_xlim([min(baseData['Key']) - xrange / baseData['Key'].size,
-                           max(baseData['Key']) + xrange/baseData['Key'].size, pixelNum + 1])
+                           max(baseData['Key']) + xrange/baseData['Key'].size])
         wellPlot.set_xlabel('Key Value')
         wellPlot.set_ylabel('Survival %')
         wellPlot.set_ylim({-0.05, 1.05})
