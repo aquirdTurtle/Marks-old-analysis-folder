@@ -78,7 +78,7 @@ def guessGaussianPeaks(rawData, binCenters, binnedData):
     guess1Location = binCenters[guess1Index]
     binnedDataWithoutPoissonian = []
     for binInc in range(0, len(binCenters)):
-        binnedDataWithoutPoissonian.append(binnedData[binInc] - poisson(binCenters[binInc], guess1Location, max(binnedData)
+        binnedDataWithoutPoissonian.append(binnedData[binInc] - poisson(binCenters[binInc], guess1Location,2 * max(binnedData)
                                                                         / poisson(guess1Location, guess1Location, 1)))
     guess2Index = argmax(binnedDataWithoutPoissonian)
     guess2Location = binCenters[guess2Index]

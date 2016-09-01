@@ -338,6 +338,7 @@ def pairAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, accu
 
 
 def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, repetitions, fileName):
+    print('Starting Data Analysis')
     import matplotlib as mpl
     mpl.rcParams['text.color'] = '#ffffff'
     mpl.rcParams['figure.edgecolor'] = '#ffffff'
@@ -364,6 +365,11 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
     from dataAnalysisFunctions import (normalizeData, binData, guessGaussianPeaks, doubleGaussian, fitDoubleGaussian,
                                        calculateAtomThreshold, getCorrelationData, getAtomData,
                                        getSingleParticleSurvivalData)
+    rgbCmap = plt.get_cmap('gist_rainbow', len(analysisLocations) / 2 + 2)
+    cMap = []
+    for colorInc in range(rgbCmap.N):
+        cMap.append(mpl.colors.rgb2hex(rgbCmap(colorInc)[:3]))
+
     baseData = dic()
     baseData['Key List'] = ''
     baseData['Date'] = date
@@ -371,19 +377,19 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
     baseData['Repetitions'] = repetitions
     baseData['Pictures Per Experiment'] = picturesPerExperiment
 
-    #dataRepositoryPath = "C:\\Users\\Mark\\Documents\\Quantum Gas Assembly Control\\Data\\Camera Data\\"
+    # dataRepositoryPath = "C:\\Users\\Mark\\Documents\\Quantum Gas Assembly Control\\Data\\Camera Data\\"
     dataRepositoryPath = "\\\\andor\\share\\Data and documents\\Data repository\\"
     todaysDataPath = dataRepositoryPath + date + "\\Raw Data\\data_" + str(baseData['Run Number']) + ".fits"
     keyPath = dataRepositoryPath + date + "\\Raw Data\\key_" + str(baseData['Run Number']) + ".txt"
     # Load Key
     baseData['Key'] = np.array([])
+    print('Getting Data')
     with open(keyPath) as keyFile:
         for line in keyFile:
             baseData['Key'] = np.append(baseData['Key'], float(line.strip('\n')))
     # Load Fits File & Get Dimensions
     # Get the array from the fits file. That's all I care about.
     fitsInfo = fits.open(todaysDataPath, "append")
-    #baseData['Raw Data'] = fitsInfo[0].data
     rawData = fitsInfo[0].data
     numberOfPictures = rawData.shape[0]
     numberOfExperiments = int(numberOfPictures / picturesPerExperiment)
@@ -448,7 +454,7 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
         mng.window.showMaximized()
         mainPlot = plt.subplot2grid((4, 4), (0, 0), colspan=3, rowspan=4)
         mainPlot.errorbar(baseData["Key"], tempData["Survival Averages"],
-                          yerr=tempData["Survival Errors"], ls='', marker='o', label="well 6", color='b',
+                          yerr=tempData["Survival Errors"], ls='', marker='o', label="well 6", color=cMap[atomInc],
                           capsize=6, elinewidth=3)
         mainPlot.set_ylim({-0.02, 1.01})
         mainPlot.set_title(str(tempData['Atom Location']) + " Survival Probability Throughout Experiment", fontsize=30)
@@ -458,7 +464,7 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
         mainPlot.grid("on")
         # Capture Probabilities Plot
         capturePlot = plt.subplot2grid((4, 4), (0, 3))
-        capturePlot.plot(baseData['Key'], tempData["Loading Probabilities"], ls='', marker='o', color='b')
+        capturePlot.plot(baseData['Key'], tempData["Loading Probabilities"], ls='', marker='o', color=cMap[atomInc])
         capturePlot.set_ylim({0, 1})
         capturePlot.set_xlabel("Key Value")
         capturePlot.set_ylabel("Loading %")
@@ -466,12 +472,12 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
         capturePlot.grid("on")
         # Count Series Plot
         countDataPlot = plt.subplot2grid((4, 4), (1, 3))
-        countDataPlot.plot(tempData["Data Counts"], 'b', ls='', marker='.', markersize=1)
+        countDataPlot.plot(tempData["Data Counts"], color=cMap[atomInc], ls='', marker='.', markersize=1)
         countDataPlot.set_xlabel("Picture #")
         countDataPlot.set_ylabel("Camera Signal")
         countDataPlot.set_title("Camera Signal Over Time")
         countDataPlot.grid("on")
-        countDataPlot.axhline(tempData["Threshold"], color='b')
+        countDataPlot.axhline(tempData["Threshold"], color=cMap[atomInc])
         # Accumulation Image
         accumulationImagePlot = plt.subplot2grid((4, 4), (2, 3))
         zeroedImage = np.array(accumulationImage) - np.amin(np.array(accumulationImage))
@@ -498,7 +504,8 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
         baseData[str(analysisLocations[2 * atomInc]) + ", " + str(analysisLocations[2 * atomInc + 1])] = tempData
 
     print('Getting Correlation Data...')
-    baseData['Correlation Averages'], baseData['Correlation Errors'] = getCorrelationData(allAtomSurvivalData, baseData['Repetitions'])
+    baseData['Correlation Averages'], baseData['Correlation Errors'] = getCorrelationData(allAtomSurvivalData,
+                                                                                          baseData['Repetitions'])
     # Plot correlation Data
     myFig = plt.figure(atomInc + 1)
     numberSurvivedPlot = plt.subplot2grid((4, 4), (0, 0), colspan=2, rowspan=2)
@@ -506,7 +513,7 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
         name = 'Load ' + str(atomInc) + ', 1 atoms survived'
         numberSurvivedPlot.errorbar(baseData['Key'], baseData['Correlation Averages'][name],
                                     yerr=baseData['Correlation Errors'][name], label=str(atomInc) + '-1',
-                                    linestyle='none', marker='o', markersize=1)
+                                    linestyle='none', marker='o', markersize=1, color=cMap[atomInc])
     numberSurvivedPlot.set_ylim({-0.05, 1.05})
     xrange = max(baseData['Key']) - min(baseData['Key'])
     pixelNum = allAtomSurvivalData.shape[0]
@@ -524,7 +531,7 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
         name = 'Load ' + str(atomsLoadedInc) + ', average single atom survival'
         averagePlot.errorbar(baseData["Key"], baseData['Correlation Averages'][name],
                              yerr=baseData['Correlation Errors'][name], linestyle='none', marker='o',
-                             label='Load ' + str(atomsLoadedInc))
+                             label='Load ' + str(atomsLoadedInc), color=cMap[atomsLoadedInc])
     averagePlot.set_ylim({-0.05, 1.05})
     xrange = max(baseData['Key']) - min(baseData['Key'])
     averagePlot.set_xlim([min(baseData['Key']) - xrange / baseData['Key'].size,
@@ -538,9 +545,6 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
 
     repNum = allAtomSurvivalData.shape[1]
     wellPlot = plt.subplot2grid((4, 4), (2, 0), colspan=3, rowspan=2)
-    print("repnum = " + str(repNum))
-    print(baseData['Repetitions'])
-    print(int(repNum / baseData['Repetitions']))
     if int(repNum / baseData['Repetitions']) == 1:
         # plot each pixel as a number, don't look at key
         pixels = list(range(1, pixelNum + 1))
@@ -555,10 +559,11 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
             name = 'Load 1, atom ' + str(pixelInc-1) + ' survived'
             oneToOneData.append(baseData['Correlation Averages'][name][0])
             oneToOneError.append(baseData['Correlation Errors'][name][0])
-        wellPlot.errorbar(pixels, fourToOneData, yerr=fourToOneError, linestyle="none", marker='o', color='blue',
+        wellPlot.errorbar(pixels, fourToOneData, yerr=fourToOneError, linestyle="none", marker='o', color=cMap[0],
                           label=str(pixelNum) + '-1', markersize=1)
-        wellPlot.errorbar(pixels, oneToOneData, yerr=oneToOneError, linestyle="none", marker='o', color='red',
-                          label='1-1', markersize=1)
+        if not (len(cMap) < 2):
+            wellPlot.errorbar(pixels, oneToOneData, yerr=oneToOneError, linestyle="none", marker='o', color=cMap[1],
+                              label='1-1', markersize=1)
         wellPlot.set_xlim([0, pixelNum + 1])
         wellPlot.set_xlabel('Well #')
         wellPlot.set_ylabel('Survival %')
@@ -575,21 +580,10 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
             name = 'Load 1, atom ' + str(pixelInc) + ' survived'
             oneToOneData = baseData['Correlation Averages'][name]
             oneToOneError = baseData['Correlation Errors'][name]
-            print(name)
-            print(baseData['Correlation Averages'])
-            print(fourToOneData)
-            print(fourToOneError)
-            print(oneToOneData)
-            print(oneToOneError)
-            print(baseData['Key'])
             wellPlot.errorbar(baseData['Key'], fourToOneData, yerr=fourToOneError, linestyle="none", marker='o',
-                              label=str(pixelNum) + '-' + str(pixelInc))
+                              label="Load " + str(pixelNum) + ', atom ' + str(pixelInc) + " survives", color=cMap[pixelInc])
             wellPlot.errorbar(baseData['Key'], oneToOneData, yerr=oneToOneError, linestyle="none", marker='o',
-                              label='1-' + str(pixelInc))
-            wellPlot.errorbar(baseData['Key'], fourToOneData, yerr=fourToOneError, linestyle="none", marker='o',
-                              label="Load " + str(pixelNum) + ', atom ' + str(pixelInc) + " survives")
-            wellPlot.errorbar(baseData['Key'], oneToOneData, yerr=oneToOneError, linestyle="none", marker='o',
-                              label="Load Only 1, atom " + str(pixelInc) + " survives")
+                              label="Load Only 1, atom " + str(pixelInc) + " survives", color=cMap[pixelInc])
         xrange = max(baseData['Key']) - min(baseData['Key'])
         if xrange == 0:
             xrange = 1
@@ -672,8 +666,9 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
 #
 # picturesPerExperiment = 2;
 #
-#singlePointAnalysis("160824", 21, [3, 1, 5, 1, 8, 1, 10, 1], 2, 10000, "testAnalysis")
+singlePointAnalysis("160824", 21, [3, 1, 5, 1, 8, 1, 10, 1], 2, 10000, "testAnalysis")
 
 
 # def pairAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, accumulations, fileName):
 # pairAnalysis("160805", 19, [3, 1, 5, 1], 2, 150, "test")
+
