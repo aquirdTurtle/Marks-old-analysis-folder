@@ -472,6 +472,7 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
         countDataPlot.set_title("Camera Signal Over Time")
         countDataPlot.grid("on")
         countDataPlot.axhline(tempData["Threshold"], color='b')
+
         # Accumulation Image
         accumulationImagePlot = plt.subplot2grid((4, 4), (2, 3))
         zeroedImage = np.array(accumulationImage) - np.amin(np.array(accumulationImage))
