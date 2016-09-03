@@ -47,7 +47,7 @@ def binData(binWidth, data):
 
 def poisson(x, k, weight):
     """
-    This function calculates $p_k{x} = norm * e^(-k) * k^x / x!.
+    This function calculates $p_k{x} = weight * e^(-k) * k^x / x!.
     :param x: argument of the poissonian
     :param k: order or (approximate) mean of the poissonian.
     :param weight: a weight factor, related to the maximum data this is supposed to be fitted to, but typically over-
@@ -62,7 +62,7 @@ def poisson(x, k, weight):
     return np.exp(-k) * term * weight
 
 
-def guessGaussianPeaks(rawData, binCenters, binnedData):
+def guessGaussianPeaks(binCenters, binnedData):
     """
     This function guesses where the gaussian peaks of the data are. It assumes one is near the maximum of the binned
     data. Then, from the binned data it subtracts an over-weighted (i.e. extra tall) poissonion distribution e^-k k^n/n!
@@ -85,6 +85,7 @@ def guessGaussianPeaks(rawData, binCenters, binnedData):
                                                      / poisson(guess1Location, guess1Location, 1)))
     guess2Index = np.argmax(binnedDataWithoutPoissonian)
     guess2Location = binCenters[guess2Index]
+    binCenters -= 500
     return guess1Location - 500, guess2Location - 500
 
 

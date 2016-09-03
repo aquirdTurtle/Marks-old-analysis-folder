@@ -364,7 +364,7 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
     from collections import OrderedDict as dic
     from dataAnalysisFunctions import (normalizeData, binData, guessGaussianPeaks, fitDoubleGaussian,
                                        calculateAtomThreshold, getCorrelationData, getAtomData,
-                                       getSingleParticleSurvivalData)
+                                       getSingleParticleSurvivalData, doubleGaussian)
     rgbCmap = plt.get_cmap('gist_rainbow', len(analysisLocations) / 2 + 2)
     cMap = []
     for colorInc in range(rgbCmap.N):
@@ -420,9 +420,9 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
         # Get Binned Data
         binCenters, binnedData = binData(5, tempData['Data Counts'])
         # Make educated Guesses for Peaks
-        guess1, guess2 = guessGaussianPeaks(tempData['Data Counts'], binCenters, binnedData)
+        guess1, guess2 = guessGaussianPeaks(binCenters, binnedData)
 
-        # Calculate Atom Threshold
+       # Calculate Atom Threshold
         # define the fitting function
         guess = np.array([100, guess1, 30, 200, guess2, 10])
         gaussianFitVals = fitDoubleGaussian(binCenters, binnedData, guess)
@@ -480,7 +480,6 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
         capturePlot.grid("on")
         # Count Series Plot
         countDataPlot = plt.subplot(gridRight[8:12, 12:15])
-        # countDataPlot = plt.subplot2grid((16, 16), (4, 12), colspan=3, rowspan=4)
         countDataPlot.plot(tempData["Data Counts"], color=cMap[atomInc], ls='', marker='.', markersize=1)
         countDataPlot.set_xlabel("Picture #")
         countDataPlot.set_ylabel("Camera Signal")
@@ -490,9 +489,13 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
         countDataPlot.axhline(guess1, color="white")
         countDataPlot.axhline(guess2, color="white")
         # Count Histogram Plot
-        countHistPlot = plt.subplot(gridLeft[8:12, 15:16])
-        # countHistPlot = plt.subplot2grid((16, 16), (4, 15), rowspan=4, sharey=countDataPlot)
-        countHistPlot.hist(tempData["Data Counts"], 50, color=cMap[atomInc], orientation='horizontal')
+        x = np.linspace(min(tempData["Data Counts"]), max(tempData["Data Counts"]), 1000)
+        gaussianDoubleFit = doubleGaussian(x, *gaussianFitVals)
+        countHistPlot = plt.subplot(gridLeft[8:12, 15:16], sharey=countDataPlot)
+        countHistPlot.plot(gaussianDoubleFit, x, color=cMap[atomInc])
+        countHistPlot.hist(tempData["Data Counts"], bins=np.arange(min(tempData["Data Counts"]),
+                                                                   max(tempData["Data Counts"]) + 5, 5),
+                           color=cMap[atomInc], orientation='horizontal', lw=0)
         countHistPlot.axhline(tempData["Threshold"], color=cMap[atomInc])
         countHistPlot.axhline(guess1, color="white")
         countHistPlot.axhline(guess2, color="white")
@@ -526,6 +529,8 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
         # add the data to the main data object.
         tempData['Key List'] = list(tempData.keys())
         baseData[str(analysisLocations[2 * atomInc]) + ", " + str(analysisLocations[2 * atomInc + 1])] = tempData
+        plt.show(block=False)
+
     print('Getting Correlation Data...')
     baseData['Correlation Averages'], baseData['Correlation Errors'] = getCorrelationData(allAtomSurvivalData,
                                                                                           baseData['Repetitions'])
