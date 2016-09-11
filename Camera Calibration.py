@@ -5,16 +5,23 @@ from scipy.optimize import curve_fit as fit
 
 
 def line(x, a, b):
+    """
+
+    :param x:
+    :param a:
+    :param b:
+    :return:
+    """
     return a*x+b
 
-firstRun = 47
-lastRun = 56
+firstRun = 40
+lastRun = 49
 # for single pixel analysis
 Location = (0, 0)
 
 dataRepositoryPath = "\\\\andor\\share\\Data and documents\\Data repository\\"
-date = "160824"
-
+#date = "160824"
+date = '160906'
 allPictures = []
 allAverages = []
 allVariances = []
@@ -57,7 +64,7 @@ for runInc in range(38, 44, 1):
 del allAverages[-2]
 del allVariances[-2]
 plt.plot(allAverages, allVariances, linestyle="none", marker="o")
-x = np.linspace(0, 1000, 1000)
+x = np.linspace(0, 1000, 20000)
 param, cov = fit(line, allAverages, allVariances, [1, 0])
 y = line(x, *param)
 plt.plot(x, y, color='r')
