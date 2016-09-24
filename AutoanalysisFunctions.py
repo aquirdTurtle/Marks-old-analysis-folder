@@ -2,6 +2,111 @@
 # This File contains all of the main functions used by my c++ code that controls the experiment.
 
 
+def atomAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, repetitions):
+    """
+
+    :param date:
+    :param runNumber:
+    :param analysisLocations:
+    :param picturesPerExperiment:
+    :param repetitions:
+    :return:
+    """
+    import numpy as np
+    from astropy.io import fits
+    from collections import OrderedDict as dic
+    from dataAnalysisFunctions import (normalizeData, binData, guessGaussianPeaks, fitDoubleGaussian,
+                                       calculateAtomThreshold, getAtomData)
+    baseData = dic()
+    baseData['Dictionary Key'] = ''
+    baseData['Date'] = date
+    baseData['Run Number'] = runNumber
+    baseData['Repetitions'] = repetitions
+    baseData['Pictures Per Repetition'] = picturesPerExperiment
+    # paths for files
+    dataRepositoryPath = "C:\\Users\\Mark\\Documents\\Quantum Gas Assembly Control\\Data\\Camera Data\\"
+    # dataRepositoryPath = "\\\\andor\\share\\Data and documents\\Data repository\\"
+    todaysDataPath = dataRepositoryPath + date + "\\Raw Data\\data_" + str(runNumber) + ".fits"
+    keyPath = dataRepositoryPath + date + "\\Raw Data\\key_" + str(runNumber) + ".txt"
+    # Load Key
+    baseData['Key'] = np.array([])
+    with open(keyPath) as keyFile:
+        for line in keyFile:
+            baseData['Key'] = np.append(baseData['Key'], float(line.strip('\n')))
+    # Load Fits File & Get Dimensions
+    # Get the array from the fits file. That's all I care about.
+    fitsInfo = fits.open(todaysDataPath, "append")
+    rawData = fitsInfo[0].data
+    fitsInfo.close()
+    # ##########################################################################
+    #
+    #       Loop for each atom to analyze
+    #
+    numberAtomsToAnalyze = np.array(analysisLocations).shape[0]
+    atomLocationList = '#'
+    baseData['Analysis Location List'] = ''
+    for atomInc in range(0, int(numberAtomsToAnalyze / 2)):
+        print('Analyzing atom #' + str(atomInc))
+        tempData = dic()
+        tempData['Dictionary Key'] = ''
+        tempData['Atom Location'] = np.array([analysisLocations[2 * atomInc], analysisLocations[2 * atomInc + 1]])
+        # My function here.
+        tempData['Camera Signal'] = normalizeData(rawData, tempData['Atom Location'])
+        # ### Figure out the threshold
+        # Get Binned Data
+        binCenters, binnedData = binData(5, tempData['Camera Signal'])
+        # Make educated Guesses for Peaks
+        guess1, guess2 = guessGaussianPeaks(binCenters, binnedData)
+        # Calculate Atom Threshold
+        # define the fitting function
+        guess = np.array([max(binnedData), guess1, 30, max(binnedData), guess2, 30])
+        gaussianFitVals = fitDoubleGaussian(binCenters, binnedData, guess)
+        tempData['Threshold'], tempData['Threshold Fidelity'] = calculateAtomThreshold(gaussianFitVals)
+        # Get Data in final form for exporting
+        tempData['Atom Data'] = getAtomData(tempData['Camera Signal'], tempData['Threshold'])
+        tempData['Dictionary Key'] = list(tempData.keys())
+        atomLocationList += str(analysisLocations[2 * atomInc]) + ", " + str(analysisLocations[2 * atomInc + 1])
+        baseData[str(analysisLocations[2 * atomInc]) + ", " + str(analysisLocations[2 * atomInc + 1])] = tempData
+        atomLocationList += '#'
+    baseData['Analysis Location List'] = atomLocationList
+    print('Prepping Data')
+    outputName = dataRepositoryPath + baseData['Date'] + "\\" + "run_" + str(baseData['Run Number']) + "_data.csv"
+    baseData['Dictionary Key'] = list(baseData.keys())
+    csvText = ''
+    for keyHeader, value in baseData.items():
+        if isinstance(value, str):
+            # don't iterate through the string, just add it.
+            csvText += '\n:' + keyHeader + ': ' + str(value)
+            continue
+        if isinstance(value, dict):
+            # iterate through that! Assume no nested dictionaries.
+            csvText += '\n:[' + keyHeader + ']:'
+            for subHeader, subValue in value.items():
+                if subHeader == "Raw Data":
+                    # want to put this on last.
+                    continue
+                if isinstance(subValue, str):
+                    # don't iterate through the string, just add it.
+                    csvText += '\n\t;' + subHeader + '; ' + str(subValue)
+                    continue
+                try:
+                    csvText += '\n\t;' + subHeader + '; ' + ", ".join(str(x) for x in subValue)
+                except TypeError:
+                    # catch integers.
+                    csvText += '\n\t;' + subHeader + '; ' + str(subValue)
+            continue
+        try:
+            csvText += '\n:' + keyHeader + ': ' + ", ".join(str(x) for x in value)
+        except TypeError:
+            # catch integers.
+            csvText += '\n:' + keyHeader + ': ' + str(value)
+    print("Writing Data...")
+    with open(outputName, "w") as record_file:
+        record_file.write(csvText)
+    print('Complete!')
+    return "Finished"
+
+"""
 def pairAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, repetitions, fileName):
     import matplotlib as mpl
     mpl.rcParams['text.color'] = '#ffffff'
@@ -18,7 +123,6 @@ def pairAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, repe
     mpl.rcParams['axes.grid'] = True
     from numpy import array
     import sys
-    sys.path.append("C:\\Users\\Mark\\Documents\\My Data Analysis")
     from astropy.io import fits
     import numpy
     numpy.set_printoptions(threshold=numpy.nan)
@@ -261,7 +365,6 @@ def pairAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, repe
     # return not null...
     return "Finished"
 
-
 def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, repetitions, fileName):
     print('Starting Data Analysis')
     import matplotlib as mpl
@@ -347,7 +450,7 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
         # Make educated Guesses for Peaks
         guess1, guess2 = guessGaussianPeaks(binCenters, binnedData)
 
-       # Calculate Atom Threshold
+        # Calculate Atom Threshold
         # define the fitting function
         guess = np.array([100, guess1, 30, 200, guess2, 10])
         gaussianFitVals = fitDoubleGaussian(binCenters, binnedData, guess)
@@ -452,7 +555,7 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
         infoPlot.text(0, 0.4, "Fit Threshold Fidelity: " + str(tempData['Threshold Fidelity']))
         # plt.tight_layout()
         # add the data to the main data object.
-        tempData['Key List'] = list(tempData.keys())
+        tempData['Dictionary Key'] = list(tempData.keys())
         baseData[str(analysisLocations[2 * atomInc]) + ", " + str(analysisLocations[2 * atomInc + 1])] = tempData
         plt.show(block=False)
 
@@ -605,7 +708,7 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
     mng.window.showMaximized()
     plt.show()
     return "Finished"
-
+"""
 # date = "160521";
 # fileName = "CarrierCalibration";
 # runNumber = 55;
@@ -621,7 +724,10 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
 # picturesPerExperiment = 2;
 #
 
-singlePointAnalysis("160824", 21, [3, 1, 5, 1, 8, 1, 10, 1], 2, 10000, "testAnalysis")
+atomAnalysis("160911", 1, [6, 0], 2, 20)
+
+
+# singlePointAnalysis("160824", 21, [3, 1, 5, 1, 8, 1, 10, 1], 2, 10000, "testAnalysis")
 
 # def pairAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, accumulations, fileName):
 # pairAnalysis("160805", 19, [3, 1, 5, 1], 2, 150, "test")

@@ -6,7 +6,7 @@ Created on Sat May 21 10:45:58 2016
 """
 
 
-def normalizeData(picsPerExperiment, rawData, atomLocation):
+def normalizeData(rawData, atomLocation):
     """
     This function analyzes raw data at the location "atom location" and returns a normalized version of
     (1) every picture
@@ -17,7 +17,6 @@ def normalizeData(picsPerExperiment, rawData, atomLocation):
     :return:
     """
     from numpy import append, array
-    firstData = array([])
     allData = array([])
     dimensions = rawData.shape
     for imageInc in range(0, dimensions[0]):
@@ -26,9 +25,7 @@ def normalizeData(picsPerExperiment, rawData, atomLocation):
                                  + rawData[imageInc][0][dimensions[2] - 1]
                                  + rawData[imageInc][dimensions[1]-1][0])
         allData = append(allData, rawData[imageInc][atomLocation[0]][atomLocation[1]] - averageBackground)
-        if imageInc % picsPerExperiment == 0:
-            firstData = append(firstData, rawData[imageInc][atomLocation[0]][atomLocation[1]] - averageBackground)
-    return allData, firstData
+    return allData
 
 
 def binData(binWidth, data):
@@ -110,7 +107,22 @@ def calculateAtomThreshold(fitVals):
     return threshold, fidelity
 
 
-def getAtomData(data, threshold, numberOfExperiments):
+def getAtomData(data, threshold):
+    import numpy as np
+    # this will include entries for when there is no atom in the first picture.
+    atomData = np.array([])
+    atomData.astype(int)
+    # this doesn't take into account loss, since these experiments are feeding-back on loss.
+    for pictureInc in range(0, data.size):
+        if data[pictureInc] < threshold:
+            # no atom
+            atomData = np.append(atomData, 0)
+        else:
+            # atom
+            atomData = np.append(atomData, 1)
+    return atomData
+
+def determineIndividualSurvivalEvents(data, threshold, numberOfExperiments):
     """
     This function assumes 2 pictures.
     It returns a raw array that includes every survival data point, including points where the the atom doesn't get
