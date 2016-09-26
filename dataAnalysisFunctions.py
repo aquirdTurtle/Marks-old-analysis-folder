@@ -6,25 +6,22 @@ Created on Sat May 21 10:45:58 2016
 """
 
 
-def normalizeData(rawData, atomLocation):
+def normalizeData(rawData, atomLocation, picture, picturesPerExperiment):
     """
-    This function analyzes raw data at the location "atom location" and returns a normalized version of
-    (1) every picture
-    (2) an array containing only the first pictures
-    :param picsPerExperiment:
-    :param rawData:
-    :param atomLocation:
-    :return:
+    :param rawData: the array of pictures
+    :param atomLocation: The location to analyze
+    :return: The data at atomLocation with the background subtracted away.
     """
     from numpy import append, array
     allData = array([])
     dimensions = rawData.shape
     for imageInc in range(0, dimensions[0]):
-        averageBackground = 1/4*(rawData[imageInc][0][0] 
-                                 + rawData[imageInc][dimensions[1]-1][dimensions[2] - 1]
-                                 + rawData[imageInc][0][dimensions[2] - 1]
-                                 + rawData[imageInc][dimensions[1]-1][0])
-        allData = append(allData, rawData[imageInc][atomLocation[0]][atomLocation[1]] - averageBackground)
+        if (imageInc + picturesPerExperiment - picture) % picturesPerExperiment == 0:
+            averageBackground = 1/4*(rawData[imageInc][0][0]
+                                     + rawData[imageInc][dimensions[1]-1][dimensions[2] - 1]
+                                     + rawData[imageInc][0][dimensions[2] - 1]
+                                     + rawData[imageInc][dimensions[1]-1][0])
+            allData = append(allData, rawData[imageInc][atomLocation[0]][atomLocation[1]] - averageBackground)
     return allData
 
 
@@ -94,7 +91,10 @@ def doubleGaussian(data, A1, x1, sig1, A2, x2, sig2):
 
 def fitDoubleGaussian(binCenters, binnedData, fitGuess):
     from scipy.optimize import curve_fit
-    fitVals, trash = curve_fit(doubleGaussian, binCenters, binnedData, fitGuess)
+    try:
+        fitVals, fitCovNotUsed = curve_fit(doubleGaussian, binCenters, binnedData, fitGuess)
+    except:
+        raise RuntimeError('Fit Failed!')
     return fitVals
 
 

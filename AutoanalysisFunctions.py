@@ -4,7 +4,6 @@
 
 def atomAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, repetitions):
     """
-
     :param date:
     :param runNumber:
     :param analysisLocations:
@@ -21,11 +20,22 @@ def atomAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, repe
     baseData['Dictionary Key'] = ''
     baseData['Date'] = date
     baseData['Run Number'] = runNumber
+    baseData['Warnings'] = ''
     baseData['Repetitions'] = repetitions
     baseData['Pictures Per Repetition'] = picturesPerExperiment
+    # Save niawg info
+    niawgLogLocation = '//andor/share/Data and documents/Data repository/NIAWG Logging Files/Individual Experiments/'
+    with open(niawgLogLocation + 'Horizontal Script.txt') as horizontalScriptFile:
+        baseData['Horizontal NIAWG Script'] = horizontalScriptFile.read()
+    with open(niawgLogLocation + 'Vertical Script.txt') as verticalScriptFile:
+        baseData['Vertical NIAWG Script'] = verticalScriptFile.read()
+    with open(niawgLogLocation + 'Intensity Script.txt') as intensityScriptFile:
+        baseData['Intensity Script'] = intensityScriptFile.read()
+    with open(niawgLogLocation + "Parameters.txt") as niawgParametersFile:
+        baseData['NIAWG Parameters'] = niawgParametersFile.read()
     # paths for files
-    dataRepositoryPath = "C:\\Users\\Mark\\Documents\\Quantum Gas Assembly Control\\Data\\Camera Data\\"
-    # dataRepositoryPath = "\\\\andor\\share\\Data and documents\\Data repository\\"
+    # dataRepositoryPath = "C:\\Users\\Mark\\Documents\\Quantum Gas Assembly Control\\Data\\Camera Data\\"
+    dataRepositoryPath = "\\\\andor\\share\\Data and documents\\Data repository\\"
     todaysDataPath = dataRepositoryPath + date + "\\Raw Data\\data_" + str(runNumber) + ".fits"
     keyPath = dataRepositoryPath + date + "\\Raw Data\\key_" + str(runNumber) + ".txt"
     # Load Key
@@ -50,20 +60,33 @@ def atomAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, repe
         tempData = dic()
         tempData['Dictionary Key'] = ''
         tempData['Atom Location'] = np.array([analysisLocations[2 * atomInc], analysisLocations[2 * atomInc + 1]])
-        # My function here.
-        tempData['Camera Signal'] = normalizeData(rawData, tempData['Atom Location'])
-        # ### Figure out the threshold
-        # Get Binned Data
-        binCenters, binnedData = binData(5, tempData['Camera Signal'])
-        # Make educated Guesses for Peaks
-        guess1, guess2 = guessGaussianPeaks(binCenters, binnedData)
-        # Calculate Atom Threshold
-        # define the fitting function
-        guess = np.array([max(binnedData), guess1, 30, max(binnedData), guess2, 30])
-        gaussianFitVals = fitDoubleGaussian(binCenters, binnedData, guess)
-        tempData['Threshold'], tempData['Threshold Fidelity'] = calculateAtomThreshold(gaussianFitVals)
-        # Get Data in final form for exporting
-        tempData['Atom Data'] = getAtomData(tempData['Camera Signal'], tempData['Threshold'])
+        # Loop through each picture
+        for picInc in range(picturesPerExperiment):
+            picStr = 'Pic ' + str(picInc + 1)
+            # ### Figure out the threshold
+            tempData[picStr + ' Camera Signal'] = normalizeData(rawData, tempData['Atom Location'],
+                                                                picInc, picturesPerExperiment)
+            # Get Binned Data
+            binCenters, binnedData = binData(5, tempData[picStr + ' Camera Signal'])
+            # Make educated Guesses for Peaks
+            guess1, guess2 = guessGaussianPeaks(binCenters, binnedData)
+            # Calculate Atom Threshold
+            # define the fitting function
+            guess = np.array([max(binnedData), guess1, 30, max(binnedData), guess2, 30])
+            try:
+                gaussianFitVals = fitDoubleGaussian(binCenters, binnedData, guess)
+                tempData[picStr + ' Threshold'], \
+                    tempData[picStr + ' Threshold Fidelity'] = calculateAtomThreshold(gaussianFitVals)
+            except RuntimeError:
+                # fit failed, no atoms.
+                # Assume no atoms.
+                tempData[picStr + ' Threshold'] = max(tempData[picStr + ' Camera Signal']) + 1
+                tempData[picStr + ' Threshold Fidelity'] = 0
+            # Get Data in final form for exporting
+            tempData[picStr + ' Atom Data'] = getAtomData(tempData[picStr + ' Camera Signal'],
+                                                          tempData[picStr + ' Threshold'])
+            if tempData[picStr + ' Threshold Fidelity'] < 0.95:
+                baseData['Warnings'] += 'Bad Fit Fidelity for Picture #' + str(picInc) + '; '
         tempData['Dictionary Key'] = list(tempData.keys())
         atomLocationList += str(analysisLocations[2 * atomInc]) + ", " + str(analysisLocations[2 * atomInc + 1])
         baseData[str(analysisLocations[2 * atomInc]) + ", " + str(analysisLocations[2 * atomInc + 1])] = tempData
@@ -76,11 +99,11 @@ def atomAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, repe
     for keyHeader, value in baseData.items():
         if isinstance(value, str):
             # don't iterate through the string, just add it.
-            csvText += '\n:' + keyHeader + ': ' + str(value)
+            csvText += '\n:X:' + keyHeader + ':X: ' + str(value)
             continue
         if isinstance(value, dict):
             # iterate through that! Assume no nested dictionaries.
-            csvText += '\n:[' + keyHeader + ']:'
+            csvText += '\n:X:[' + keyHeader + ']:X:'
             for subHeader, subValue in value.items():
                 if subHeader == "Raw Data":
                     # want to put this on last.
@@ -96,11 +119,11 @@ def atomAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, repe
                     csvText += '\n\t;' + subHeader + '; ' + str(subValue)
             continue
         try:
-            csvText += '\n:' + keyHeader + ': ' + ", ".join(str(x) for x in value)
+            csvText += '\n:X:' + keyHeader + ':X: ' + ", ".join(str(x) for x in value)
         except TypeError:
             # catch integers.
-            csvText += '\n:' + keyHeader + ': ' + str(value)
-    print("Writing Data...")
+            csvText += '\n:X:' + keyHeader + ':X: ' + str(value)
+    print("Writing Data to " + str(outputName) + "...")
     with open(outputName, "w") as record_file:
         record_file.write(csvText)
     print('Complete!')
@@ -725,7 +748,6 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
 #
 
 atomAnalysis("160911", 1, [6, 0], 2, 20)
-
 
 # singlePointAnalysis("160824", 21, [3, 1, 5, 1, 8, 1, 10, 1], 2, 10000, "testAnalysis")
 
