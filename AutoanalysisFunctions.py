@@ -34,8 +34,8 @@ def atomAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, repe
     with open(niawgLogLocation + "Parameters.txt") as niawgParametersFile:
         baseData['NIAWG Parameters'] = niawgParametersFile.read()
     # paths for files
-    # dataRepositoryPath = "C:\\Users\\Mark\\Documents\\Quantum Gas Assembly Control\\Data\\Camera Data\\"
-    dataRepositoryPath = "\\\\andor\\share\\Data and documents\\Data repository\\"
+    dataRepositoryPath = "C:\\Users\\Mark\\Documents\\Quantum Gas Assembly Control\\Data\\Camera Data\\"
+    # dataRepositoryPath = "\\\\andor\\share\\Data and documents\\Data repository\\"
     todaysDataPath = dataRepositoryPath + date + "\\Raw Data\\data_" + str(runNumber) + ".fits"
     keyPath = dataRepositoryPath + date + "\\Raw Data\\key_" + str(runNumber) + ".txt"
     # Load Key
@@ -44,9 +44,12 @@ def atomAnalysis(date, runNumber, analysisLocations, picturesPerExperiment, repe
         for line in keyFile:
             baseData['Key'] = np.append(baseData['Key'], float(line.strip('\n')))
     # Load Fits File & Get Dimensions
+    baseData['Intensity Script'] = todaysDataPath
+
     # Get the array from the fits file. That's all I care about.
     fitsInfo = fits.open(todaysDataPath, "append")
     rawData = fitsInfo[0].data
+    baseData['NIAWG Parameters'] = str(rawData)
     fitsInfo.close()
     # ##########################################################################
     #
@@ -747,7 +750,7 @@ def singlePointAnalysis(date, runNumber, analysisLocations, picturesPerExperimen
 # picturesPerExperiment = 2;
 #
 
-atomAnalysis("160911", 1, [6, 0], 2, 20)
+#atomAnalysis("160911", 1, [6, 0], 2, 20)
 
 # singlePointAnalysis("160824", 21, [3, 1, 5, 1, 8, 1, 10, 1], 2, 10000, "testAnalysis")
 
